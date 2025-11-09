@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/KryptNx.FlowNxt.App/KryptNx.FlowNxt.App.csproj" Id="fa5abfca-502d-4add-ba0d-5669a9dbb3d9">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>
