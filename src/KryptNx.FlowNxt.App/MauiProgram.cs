@@ -1,4 +1,5 @@
 ﻿using MauiReactor;
+using MauiReactor.HotReload;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KryptNx.FlowNxt.App

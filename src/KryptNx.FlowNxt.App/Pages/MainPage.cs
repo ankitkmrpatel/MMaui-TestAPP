@@ -1,6 +1,4 @@
-﻿using KryptNx.FlowNxt.App.Components;
-using KryptNx.FlowNxt.App.Components2;
-using MauiReactor;
+﻿using MauiReactor;
 
 namespace KryptNx.FlowNxt.App.Pages;
 
@@ -15,8 +13,9 @@ public class MainPage : Component
                 new VerticalStackLayout
                 {
                     // These should be view components (not ContentPage)
-                    new DemoPage(),           // if DemoPage renders visual nodes (views)
-                    new StackedCardDemoPage() // same here
+                    new Components.DemoPage(),
+                    new Components2.StackedCardDemoPage(), // same here
+                    new Components3.StackedCardDemoPage() // same here
                 }
                 .Padding(new Thickness(12))
                 .Spacing(12)

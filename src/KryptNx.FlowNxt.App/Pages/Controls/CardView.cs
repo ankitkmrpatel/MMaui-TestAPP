@@ -298,13 +298,9 @@ namespace KryptNx.FlowNxt.App.Components
             foreach (var (front, back) in _data)
             {
                 rows.Add(
-                    new ContentView()
-                    {
                         new CardStack(front, back, BuildRightIcons(), onAction: (action) => {
                             // handle card front actions (e.g., icon tapped)
                         })
-                    }
-                    .HorizontalOptions(MauiControls.LayoutOptions.FillAndExpand)
                 );
             }
 
