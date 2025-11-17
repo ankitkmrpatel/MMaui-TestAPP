@@ -20,7 +20,10 @@ namespace KryptNx.FlowNxt.App
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                     fonts.AddFont("SegoeUI-Semibold.ttf", "SegoeSemibold");
-                    fonts.AddFont("FluentSystemIcons-Regular.ttf", FluentUI.FontFamily);
+                    fonts.AddFont("fa-solid-900.ttf", "FA");           // FontAwesome (solid) alias "FA"
+                    fonts.AddFont("fa-regular-400.ttf", "FAReg");      // optional
+                    fonts.AddFont("FluentSystemIcons-Regular.ttf", "Fluent");
+                    fonts.AddFont("FluentSystemIcons.ttf", FluentUI.FontFamily); // Fluent icons alias
                 });
 
 #if DEBUG
