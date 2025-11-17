@@ -84,24 +84,7 @@ namespace KryptNx.FlowNxt.App.Components
                         // Spacer (to push content down a bit; feel free to tune)
                         new BoxView().HeightRequest(12),
 
-                        // Description block (center-left)
-                        new Label(_model.Description)
-                            .FontSize(14)
-                            .LineBreakMode(LineBreakMode.TailTruncation)
-                            .MaxLines(4)
-                            .HorizontalOptions(MauiControls.LayoutOptions.Start)
-                            .VerticalOptions(MauiControls.LayoutOptions.Start)
-                            .Padding(new Thickness(12, 8, 12, 8)),
-
-                        new Grid
-                        {
-                            // bottom row placeholder (so icon can be placed bottom-left via absolute)
-                        },
-
-                        // Reactor 'Content' helper: We'll create an overlay grid with AbsoluteLayout style positioning
-                        new Grid
-                        {
-                            // top overlay: title in top-right, using HorizontalStackLayout aligned end
+                        // top overlay: title in top-right, using HorizontalStackLayout aligned end
                             new HorizontalStackLayout
                             {
                                 new Label(_model.Title)
@@ -111,6 +94,23 @@ namespace KryptNx.FlowNxt.App.Components
                                     .VerticalOptions(MauiControls.LayoutOptions.Start),
                             }
                             .Padding(new Thickness(12, 10, 12, 0)),
+
+                        new Grid
+                        {
+                            // bottom row placeholder (so icon can be placed bottom-left via absolute)
+                        },
+
+                        // Reactor 'Content' helper: We'll create an overlay grid with AbsoluteLayout style positioning
+                        new Grid
+                        {
+                            // Description block (center-left)
+                            new Label(_model.Description)
+                                .FontSize(14)
+                                .LineBreakMode(LineBreakMode.TailTruncation)
+                                .MaxLines(4)
+                                .HorizontalOptions(MauiControls.LayoutOptions.Start)
+                                .VerticalOptions(MauiControls.LayoutOptions.Start)
+                                .Padding(new Thickness(12, 8, 12, 8)),
 
                             // This box will act as the description area already added; keep it transparent.
 
@@ -122,8 +122,8 @@ namespace KryptNx.FlowNxt.App.Components
                                     .TranslationX(-6)
                                     .TranslationY(10)
                                     .Rotation(-18) // tilted
-                                    .HorizontalOptions(MauiControls.LayoutOptions.Start)
-                                    .VerticalOptions(MauiControls.LayoutOptions.End)
+                                    .HorizontalOptions(MauiControls.LayoutOptions.End)
+                                    .VerticalOptions(MauiControls.LayoutOptions.Start)
                                     .Margin(new Thickness(12, 0, 0, 12))
                                     .OnTapped(() => _onAction?.Invoke("iconTapped"))
                                 : new BoxView().WidthRequest(0).HeightRequest(0) // placeholder
@@ -155,16 +155,6 @@ namespace KryptNx.FlowNxt.App.Components
             {
                 new VerticalStackLayout
                 {
-                    new Label(_model.Title)
-                        .FontSize(16)
-                        .FontAttributes(MauiControls.FontAttributes.Bold)
-                        .Padding(new Thickness(12,10,12,0)),
-
-                    new Label(_model.Description)
-                        .FontSize(12)
-                        .Opacity(0.9)
-                        .Padding(new Thickness(12,4,12,8)),
-
                     new Grid
                     {
                         // bottom-left: options button (3 dots) - simple menu simulation

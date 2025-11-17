@@ -101,27 +101,27 @@ public static class IconRenderer
     }
 }
 
-// Models/CardEntity.cs
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+//// Models/CardEntity.cs
+//using System.ComponentModel.DataAnnotations;
+//using System.ComponentModel.DataAnnotations.Schema;
 
-public class CardEntity
-{
-    [Key]
-    public int Id { get; set; }
+//public class CardEntity
+//{
+//    [Key]
+//    public int Id { get; set; }
 
-    public string Title { get; set; }
-    public string Description { get; set; }
+//    public string Title { get; set; }
+//    public string Description { get; set; }
 
-    // Icon storage fields
-    public string IconFamily { get; set; }        // e.g. "FontAwesome", "Fluent", "Svg"
-    public string IconKey { get; set; }           // e.g. "fa-heart", "heart.svg", or glyph string
-    public string IconGlyph { get; set; }         // optional explicit glyph like "\uF004"
-    public string IconFontFamily { get; set; }    // e.g. "FA6Solid"
-    public string IconColorHex { get; set; }      // e.g. "#FF0000"
-    public int IconSize { get; set; } = 18;
+//    // Icon storage fields
+//    public string IconFamily { get; set; }        // e.g. "FontAwesome", "Fluent", "Svg"
+//    public string IconKey { get; set; }           // e.g. "fa-heart", "heart.svg", or glyph string
+//    public string IconGlyph { get; set; }         // optional explicit glyph like "\uF004"
+//    public string IconFontFamily { get; set; }    // e.g. "FA6Solid"
+//    public string IconColorHex { get; set; }      // e.g. "#FF0000"
+//    public int IconSize { get; set; } = 18;
 
-    // background data (as JSON or columns)
-    public string BackgroundType { get; set; }
-    public string BackgroundJson { get; set; }    // optional: store gradient stops, image url etc.
-}
+//    // background data (as JSON or columns)
+//    public string BackgroundType { get; set; }
+//    public string BackgroundJson { get; set; }    // optional: store gradient stops, image url etc.
+//}

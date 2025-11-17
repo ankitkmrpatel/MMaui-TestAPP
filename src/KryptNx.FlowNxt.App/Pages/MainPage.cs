@@ -15,7 +15,7 @@ public class MainPage : Component
                     // These should be view components (not ContentPage)
                     new Components.DemoPage(),
                     new Components2.StackedCardDemoPage(), // same here
-                    new Components3.StackedCardDemoPage() // same here
+                    new Components3.CardDemoPage() // same here
                 }
                 .Padding(new Thickness(12))
                 .Spacing(12)

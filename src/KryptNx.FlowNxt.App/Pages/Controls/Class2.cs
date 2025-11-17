@@ -1,367 +1,295 @@
-﻿// StackedCardRefactor.cs
-using System;
+﻿using MauiReactor;
+using MauiReactor.Compatibility;
+using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
 using System.Linq;
-using MauiReactor;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Devices;
 
 namespace KryptNx.FlowNxt.App.Components3
 {
-    public enum BackgroundType
+    public enum CardVariant
     {
+        Outline,
         Solid,
         Gradient,
-        Icon,
-        Image
+        ImageBackground
     }
 
-    // Single merged model for each stacked card
-    public class CardStackedModel
+    // Reactor component (non-generic) with public properties to set from caller
+    public partial class CardView : Component
     {
-        public string Id { get; set; }
-
-        // Front content
-        public string FrontTitle { get; set; }
-        public string FrontDescription { get; set; }
-
-        // Visual behavior
-        public BackgroundType BackgroundType { get; set; } = BackgroundType.Solid;
-
-        // Solid color
+        public string Title { get; set; } = "Title";
+        public string Description { get; set; } = "Description";
+        public CardVariant Variant { get; set; } = CardVariant.Outline;
+        public string IconGlyph { get; set; } = null;        // e.g. "\uf0f3"
+        public string IconFontFamily { get; set; } = "FA";   // font alias registered in MauiProgram
+        public string BackgroundImage { get; set; } = null;  // file name or url
         public Color SolidColor { get; set; } = Colors.White;
-
-        // Gradient
-        public Color GradientStart { get; set; } = Colors.LightGray;
-        public Color GradientEnd { get; set; } = Colors.DarkGray;
-
-        // Icon (for Icon background)
-        public string IconGlyph { get; set; } = "★";
-
-        // Image
-        public string ImageUrl { get; set; }
-
-        // Back card: only background color (grey/black)
-        public Color BackBackgroundColor { get; set; } = Colors.Black.WithAlpha(0.06f);
-
-        // Action icons for back (heart, user, etc.)
-        public VisualNode[] BackActionIcons { get; set; } = Array.Empty<VisualNode>();
-    }
-
-    static class Responsive
-    {
-        public static double GetDeviceWidthDp()
-        {
-            var info = DeviceDisplay.MainDisplayInfo;
-            return info.Width / info.Density;
-        }
-
-        public static double GetDeviceHeightDp()
-        {
-            var info = DeviceDisplay.MainDisplayInfo;
-            return info.Height / info.Density;
-        }
-
-        // Card height as a ratio of screen height with minimum
-        public static double ComputeCardHeight(double ratio = 0.32)
-        {
-            var h = GetDeviceHeightDp();
-            var height = Math.Max(140, Math.Round(h * ratio)); // minimum 140dp
-            return height;
-        }
-
-        // Scale fonts based on width
-        public static double FontScale(double baseSize)
-        {
-            var w = GetDeviceWidthDp();
-            if (w < 360) return baseSize * 0.88;     // small phones
-            if (w < 420) return baseSize * 0.95;     // typical phones
-            if (w < 900) return baseSize * 1.0;      // tablets / desktop small
-            return baseSize * 1.05;                 // large screens
-        }
-    }
-
-    static class TextUtil
-    {
-        public static string TruncateWithEllipsis(string text, int maxChars)
-        {
-            if (string.IsNullOrEmpty(text)) return text;
-            if (text.Length <= maxChars) return text;
-            return text.Substring(0, Math.Max(0, maxChars - 3)).TrimEnd() + "...";
-        }
-    }
-
-
-
-    // Back card — darker, sits behind and offset
-    public class CardBack : Component
-    {
-
-        public CardBack(CardStackedModel m)
-        {
-            _m = m;
-        }
-        private readonly CardStackedModel _m;
-        private readonly double _height = Responsive.ComputeCardHeight(0.32);
-        private readonly Thickness _actionBoxOverlap = new Thickness(-20, 0, 0, 12); // negative left to overlap half-outside
+        public (Color from, Color to)? GradientColors { get; set; } = null;
 
         public override VisualNode Render()
         {
-            // Back only shows background and action elements. No title/subtitle/desc.
-            return new Frame
+            // single-cell overlay grid (back card peeking + front card + tilted glyph)
+            IEnumerable<MauiControls.RowDefinition> rows = [new MauiControls.RowDefinition(GridLength.Star)];
+            IEnumerable<MauiControls.ColumnDefinition> cols = [new MauiControls.ColumnDefinition(GridLength.Star)];
+            return new Grid(rows, cols)
             {
-                new Grid
+                // BACK card (peeking)
+                new Frame()
                 {
-                    // background
-                    new BoxView().Color(_m.BackBackgroundColor),
-
-                    // overlay grid for menu & action icons
                     new Grid
                     {
-                        // bottom-right menu (⋯)
-                        new Button("⋯")
-                            .FontSize(18)
+                        // little badge that visually peeks on top-left of back card
+                        new BoxView()
                             .WidthRequest(36)
-                            .HeightRequest(36)
-                            .CornerRadius(18)
-                            .HorizontalOptions(MauiControls.LayoutOptions.End)
-                            .VerticalOptions(MauiControls.LayoutOptions.End)
-                            .Margin(new Thickness(0, 0, 12, 12))
-                            .OnClicked(() => {
-                                // TODO: show options view/edit/add
-                            }),
-
-                        // bottom-left action icons box that slightly overflows left (half-outside)
-                        new ContentView
-                        {
-                            new Frame
-                            {
-                                new HorizontalStackLayout
-                                {
-                                    _m.BackActionIcons
-                                }
-                                .Spacing(8)
-                                .Padding(new Thickness(8, 6))
-                            }
-                            .CornerRadius(8)
-                            .HasShadow(false)
-                            .BackgroundColor(Colors.White) // icon box color
-                        }
-                        .HorizontalOptions(MauiControls.LayoutOptions.Start)
-                        .VerticalOptions(MauiControls.LayoutOptions.End)
-                        .Margin(_actionBoxOverlap) // negative left margin makes the box overflow
+                            .HeightRequest(24)
+                            .CornerRadius(12)
+                            .BackgroundColor(Colors.DarkGray)
+                            .Margin(8, 6, 0, 0)
                     }
                 }
-            }
-            .CornerRadius(12)
-            .HasShadow(false)
-            .HeightRequest(_height)
-            .Margin(new Thickness(12, 16, 0, 0))
-            .BackgroundColor(_m.BackBackgroundColor);
-        }
-    }
+                .HasShadow(false)
+                .CornerRadius(12)
+                .Padding(0)
+                .BackgroundColor(Colors.LightGray)
+                .GridRow(0)
+                .GridColumn(0),
 
-    // Front card — white (or slightly translucent) with large image centered
-    // FRONT card (Title + Description + optional tilted icon for Icon variant)
-    public class CardFront : Component
-    {
-        private readonly CardStackedModel _m;
-        private readonly double _height;
-        private readonly double _titleSize;
-        private readonly double _descSize;
+                // FRONT card (main)
+                BuildFront().GridRow(0).GridColumn(0),
 
-        public CardFront(CardStackedModel m)
-        {
-            _m = m;
-            _height = Responsive.ComputeCardHeight(0.32);
-            _titleSize = Responsive.FontScale(16);
-            _descSize = Responsive.FontScale(13);
-        }
-
-        private VisualNode BuildBackground()
-        {
-            switch (_m.BackgroundType)
-            {
-                case BackgroundType.Gradient:
-                    {
-                        var brush = new MauiControls.LinearGradientBrush(
-                            [
-                                new MauiControls.GradientStop(_m.GradientStart, 0f),
-                                new MauiControls.GradientStop(_m.GradientEnd, 1f)
-                            ],
-                            new Point(0, 0),
-                            new Point(1, 1)
-                        );
-                        return new Grid { }.Background(brush);
-                    }
-
-                case BackgroundType.Image:
-                    if (!string.IsNullOrWhiteSpace(_m.ImageUrl))
-                        return new Image(_m.ImageUrl).Aspect(Aspect.AspectFill);
-                    return new BoxView().Color(_m.SolidColor);
-
-                case BackgroundType.Icon:
-                case BackgroundType.Solid:
-                default:
-                    return new BoxView().Color(_m.SolidColor);
-            }
-        }
-
-        public override VisualNode Render()
-        {
-            // conservative char limit for trimming
-            int charLimit = 140; // safe default (will be cut with Label MaxLines)
-            var desc = TextUtil.TruncateWithEllipsis(_m.FrontDescription ?? string.Empty, charLimit);
-
-            var background = BuildBackground();
-
-            // Icon overlay when BackgroundType == Icon: rotated, placed bottom-right and tilted left
-            var iconOverlay = (_m.BackgroundType == BackgroundType.Icon)
-                ? (VisualNode)new Label(_m.IconGlyph ?? "★")
-                    .FontSize(64)
-                    .Opacity(0.14)
-                    .Rotation(-16) // tilted left
+                // Tilted glyph watermark on bottom-right (Outline variant)
+                new Label()
+                    .Text(() => IconGlyph ?? string.Empty)
+                    .FontFamily(() => IconFontFamily ?? "FA")
+                    .FontSize(40)
+                    .Rotation(20)
                     .HorizontalOptions(MauiControls.LayoutOptions.End)
                     .VerticalOptions(MauiControls.LayoutOptions.End)
-                    .Margin(new Thickness(0, 0, 8, 6))
-                : new BoxView().Color(Colors.Transparent);
-
-            return new Frame
-            {
-                // stacking background and overlay content
-                new Grid
-                {
-                    background,
-
-                    // content column
-                    new VerticalStackLayout
-                    {
-                        // Title row top-right style: push to right
-                        new HorizontalStackLayout
-                        {
-                            new Label() // spacer left to push title right
-                                .HorizontalOptions(MauiControls.LayoutOptions.StartAndExpand),
-
-                            new Label(_m.FrontTitle ?? string.Empty)
-                                .FontAttributes(MauiControls.FontAttributes.Bold)
-                                .FontSize(_titleSize)
-                                .HorizontalOptions(MauiControls.LayoutOptions.End)
-                                .VerticalOptions(MauiControls.LayoutOptions.Start)
-                                .Padding(new Thickness(0, 8, 8, 0))
-                        }
-                        .Padding(new Thickness(12, 8, 12, 0)),
-
-                        // description - trimmed and limited to lines
-                        new Label(desc)
-                            .FontSize(_descSize)
-                            .LineBreakMode(LineBreakMode.TailTruncation)
-                            .MaxLines(3)
-                            .Padding(new Thickness(12, 6, 12, 8))
-                            .HorizontalOptions(MauiControls.LayoutOptions.Fill)
-                            .VerticalOptions(MauiControls.LayoutOptions.Start)
-                    },
-
-                    // Icon overlay (z-order above content)
-                    iconOverlay
-                }
+                    .Margin(0, 0, 8, 8)
+                    .Opacity(0.12)
+                    .IsVisible(() => Variant == CardVariant.Outline && !string.IsNullOrEmpty(IconGlyph))
+                    .GridRow(0)
+                    .GridColumn(0),
             }
-            .CornerRadius(12)
-            .HasShadow(true)
-            .BackgroundColor(Colors.Transparent)
-            .HeightRequest(_height);
-        }
-    }
-
-    // Composite that stacks back first and front second (so front overlays back)
-    // Composite card that stacks back (z=0) then front (z=1)
-    public class CardStack : Component
-    {
-        private readonly CardStackedModel _m;
-
-        public CardStack(CardStackedModel m)
-        {
-            _m = m;
+            //.RowDefinitions(new[] { GridLength.Star })   // single row full
+            //.ColumnDefinitions(new[] { GridLength.Star }) // single column full
+            .HeightRequest(160) // default sizing - change as needed
+            .WidthRequest(320);
         }
 
-        public override VisualNode Render()
+        Frame BuildFront()
         {
-            // wrapper so we can apply layout options
-            return new ContentView
+            // overlay content: title, description, footer
+            IEnumerable<MauiControls.RowDefinition> rows = [new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto)];
+            IEnumerable<MauiControls.ColumnDefinition> cols = [new(GridLength.Star)];
+
+            IEnumerable<MauiControls.RowDefinition> footerrows = [];
+            IEnumerable<MauiControls.ColumnDefinition> footercols = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)];
+            var overlay = new Grid(rows, cols)
             {
-                new Grid
+                // Title (row 0)
+                new Label()
+                    .Text(() => Title ?? "No Title")
+                    .FontSize(20)
+                    .FontAttributes(MauiControls.FontAttributes.Bold)
+                    .Margin(12, 8, 12, 2)
+                    .GridRow(0)
+                    .GridColumn(0),
+
+                // Description (row 1)
+                new Label()
+                    .Text(() => Description ?? "No Description")
+                    .FontSize(13)
+                    .Opacity(0.85)
+                    .Margin(12, 0, 12, 6)
+                    .GridRow(1)
+                    .GridColumn(0),
+
+
+                // Footer row (row 2): left icon, spacer, three-dots button
+                new Grid(footerrows, footercols)
                 {
-                    // back first
-                    new CardBack(_m),
-                    // front inset so the back peeks on right & bottom
-                    new ContentView
+                    new Label()
+                        .Text(() => IconGlyph ?? string.Empty)
+                        .FontFamily(() => IconFontFamily ?? "FA")
+                        .FontSize(16)
+                        .VerticalOptions(MauiControls.LayoutOptions.Center)
+                        .IsVisible(() => !string.IsNullOrEmpty(IconGlyph))
+                        .GridColumn(0),
+
+                    // spacer: empty BoxView expands due to Star column
+                    new BoxView()
+                        .BackgroundColor(Colors.Transparent)
+                        .GridColumn(1),
+
+                    new Button()
+                        .Text("⋯")
+                        .BackgroundColor(Colors.Transparent)
+                        .OnClicked(() => OnMenuClicked())
+                        .GridColumn(2)
+                }
+                .GridRow(2)
+                .GridColumn(0)
+            };
+
+            // front card appearance based on variant
+            switch (Variant)
+            {
+                case CardVariant.Outline:
+                    return new Frame()
                     {
-                        new CardFront(_m)
+                        overlay
                     }
-                    .Margin(new Thickness(0, 0, 22, 22)) // front inset: controls peek
-                }
+                    .CornerRadius(12)
+                    .HasShadow(true)
+                    .Padding(0)
+                    .BackgroundColor(Colors.White)
+                    .BorderColor(Colors.LightGray);
+
+                case CardVariant.Solid:
+                    return new Frame()
+                    {
+                        overlay
+                    }
+                    .CornerRadius(10)
+                    .HasShadow(true)
+                    .Padding(0)
+                    .BackgroundColor(SolidColor)
+                    .BorderColor(Colors.Transparent);
+
+                case CardVariant.Gradient:
+                    // Reactor v3 may not provide cross-platform LinearGradientBrush in all targets,
+                    // so we fallback to a midpoint solid color that compiles everywhere.
+                    var (from, to) = GradientColors ?? (Colors.MediumPurple, Colors.LightBlue);
+                    var mid = Blend(from, to, 0.5f);
+                    return new Frame()
+                    {
+                        overlay
+                    }
+                    .CornerRadius(10)
+                    .HasShadow(true)
+                    .Padding(0)
+                    .BackgroundColor(mid)
+                    .BorderColor(Colors.Transparent);
+
+                case CardVariant.ImageBackground:
+                    // image as background with overlay content
+                    return new Frame()
+                    {
+                        new Grid
+                        {
+                            // background image
+                            new Image()
+                                .Source(() => {
+                                    if (string.IsNullOrEmpty(BackgroundImage)) return null!;
+                                    if (BackgroundImage.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                        return MauiControls.ImageSource.FromUri(new Uri(BackgroundImage));
+                                    return MauiControls.ImageSource.FromFile(BackgroundImage);
+                                })
+                                .Aspect(Aspect.AspectFill)
+                                .GridRow(0)
+                                .GridColumn(0),
+
+                            // overlay content above the image
+                            overlay.GridRow(0).GridColumn(0)
+                        }
+                    }
+                    .CornerRadius(10)
+                    .HasShadow(true)
+                    .Padding(0)
+                    .BackgroundColor(Colors.Transparent);
+
+                default:
+                    return new Frame()
+                    {
+                        overlay
+                    }
+                    .CornerRadius(10)
+                    .HasShadow(true)
+                    .Padding(0)
+                    .BackgroundColor(Colors.White);
             }
-            .HorizontalOptions(MauiControls.LayoutOptions.Fill)
-            .Margin(new Thickness(12, 8));
+        }
+
+        void OnMenuClicked()
+        {
+            // stub (user can replace with a Popup/ContextMenu)
+            System.Diagnostics.Debug.WriteLine("Card: menu clicked");
+
+        }
+
+        static Color Blend(Color a, Color b, float t)
+        {
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+            return Color.FromRgba(
+                a.Red + (b.Red - a.Red) * t,
+                a.Green + (b.Green - a.Green) * t,
+                a.Blue + (b.Blue - a.Blue) * t,
+                a.Alpha + (b.Alpha - a.Alpha) * t
+            );
         }
     }
 
-    // Demo page: generate random variants and show cards responsive
-    public class StackedCardDemoPage : Component
+    // Demo page showing how to use CardView within Reactor render
+    public class CardDemoPage : Component
     {
-        private readonly List<CardStackedModel> _items;
-
-        public StackedCardDemoPage(int count = 6)
-        {
-            var rand = new Random();
-            _items = [.. Enumerable.Range(1, count).Select(i =>
-            {
-                var variant = (BackgroundType)rand.Next(Enum.GetValues(typeof(BackgroundType)).Length);
-
-                return new CardStackedModel
-                {
-                    Id = i.ToString(),
-                    FrontTitle = $"My Pending Actions",
-                    FrontDescription = (i % 2 == 0)
-                        ? "This is short desc of this card....."
-                        : "This is a longer description that should be trimmed and show ellipsis when it overflows the visible area of the card. It demonstrates trimming behavior across devices.",
-                    BackgroundType = variant,
-                    SolidColor = variant == BackgroundType.Solid ? Colors.White : Colors.White,
-                    GradientStart = Color.FromUint(0xFFB3E5FC), // light blue
-                    GradientEnd = Color.FromUint(0xFF81D4FA), // medium blue
-                    ImageUrl = "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80",
-                    IconGlyph = "★",
-                    BackBackgroundColor = Colors.Black.WithAlpha(0.08f),
-                    BackActionIcons =
-                    [
-                        new Button("❤").WidthRequest(36).HeightRequest(34).CornerRadius(8),
-                        new Button("👤").WidthRequest(36).HeightRequest(34).CornerRadius(8)
-                    ]
-                };
-            })];
-        }
-
         public override VisualNode Render()
         {
-            var nodes = new List<VisualNode>();
-
-            foreach (var item in _items)
+            return new ScrollView
             {
-                nodes.Add(
-                        //new ContentView
-                        //{
-                        //    new CardStack(item)
-                        new CardStack(item)
-                //}
-                //.HorizontalOptions(MauiControls.LayoutOptions.FillAndExpand)
-                );
-            }
+                new VerticalStackLayout
+                {
+                    
+                    // Wrap CardView inside ContentView (so Reactor treats it as IView and margins work)
+                    new ContentView()
+                    {
+                        new CardView
+                        {
+                            Title = "My Pending Actions",
+                            Description = "This is short desc of this card.....",
+                            Variant = CardVariant.Outline,
+                            IconGlyph = "\uf0f3",
+                            IconFontFamily = "FA"
+                        }
+                    }.HeightRequest(160),
 
-            return new VerticalStackLayout
-            {
-                nodes.ToArray()
-            }
-            .Spacing(14)
-            .Padding(new Thickness(16));
+                    new ContentView()
+                    {
+                        new CardView
+                        {
+                            Title = "Solid Card",
+                            Description = "No icons on this one",
+                            Variant = CardVariant.Solid,
+                            SolidColor = Colors.LightGreen
+                        }
+                    }.HeightRequest(160),
+
+                    new ContentView()
+                    {
+                        new CardView
+                        {
+                            Title = "Gradient Card",
+                            Description = "Front card with gradient-like background",
+                            Variant = CardVariant.Gradient,
+                            GradientColors = (Colors.Orange, Colors.Purple)
+                        }
+                    }.HeightRequest(160),
+
+                    new ContentView()
+                    {
+                        new CardView
+                        {
+                            Title = "Image Background",
+                            Description = "Using an image as card background",
+                            Variant = CardVariant.ImageBackground,
+                            BackgroundImage = "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80"
+                        }
+                    }.HeightRequest(160),
+                }
+                .Spacing(12)
+                .Padding(new Thickness(12)),
+            };
         }
     }
 }
