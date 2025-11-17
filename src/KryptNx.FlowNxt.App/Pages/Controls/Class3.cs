@@ -3,6 +3,9 @@ using MauiReactor.Compatibility;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KryptNx.FlowNxt.App.Components4
 {
@@ -29,9 +32,12 @@ namespace KryptNx.FlowNxt.App.Components4
         public CardVariant Variant { get; set; } = CardVariant.Outline;
         public string IconGlyph { get; set; } = "\uf0f3";
         public string IconFontFamily { get; set; } = "FA";
-        public string BackgroundImage { get; set; } = string.Empty;
+        public string BackgroundImage { get; set; } = "";
         public Color SolidColor { get; set; } = Colors.White;
         public (Color from, Color to)? GradientColors { get; set; } = null;
+        
+        public IList<string> BackIconGlyphs { get; set; } = new List<string> { "\uf004", "\uf0f3" };
+
         public double ImageOpacity { get; set; } = 0.36;
         public double CardHeight { get; set; } = 160;
 
@@ -52,6 +58,15 @@ namespace KryptNx.FlowNxt.App.Components4
             var deviceWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
             var cardWidth = Math.Max(280, deviceWidth - 24);
 
+            // badge sizing and spacing
+            var badgeSize = 36.0;
+            var badgeSpacing = 8.0;
+            var backIconCount = Math.Max(0, BackIconGlyphs?.Count ?? 0);
+
+            // compute extra height for back card so it grows when there are more badges
+            var extraBackHeight = backIconCount <= 1 ? 0 : 0; // optionally keep back card same height; change if you want it grow
+            var backCardHeight = CardHeight + extraBackHeight;
+
             // BACK CARD (peeking)
             var backCard = new Frame()
                 .HasShadow(false)
@@ -60,20 +75,10 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.LightGray)
                 .Margin(22, 30, 0, 0)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight)
+                .HeightRequest(backCardHeight)
                 .GridRow(0)
                 .GridColumn(0);
-
-            // small capsule in back card top-left (peeking)
-            var capsule = new BoxView()
-                .WidthRequest(36)
-                .HeightRequest(24)
-                .CornerRadius(12)
-                .BackgroundColor(Colors.DarkGray)
-                .Margin(8, 6, 0, 0)
-                .GridRow(0)
-                .GridColumn(0);
-
+            
             // make a menu request handler that packages the popup spec and asks parent to show it
             Action raisePopup = () =>
             {
@@ -106,51 +111,47 @@ namespace KryptNx.FlowNxt.App.Components4
             // FRONT CARD
             var front = BuildFront(cardWidth);
 
-            // BADGES (half-in / half-out using negative left margin)
-            var heartBadge = new Frame()
-                .CornerRadius(18)
-                .Padding(6)
-                .HasShadow(false)
-                .BackgroundColor(Colors.White)
-                .BorderColor(Colors.Transparent)
-                .WidthRequest(36)
-                .HeightRequest(36)
-                .Margin(-18, 14, 0, 0); // negative left -> half out
+            // BADGES container: horizontal stack positioned so first badge is half-overlapping front bottom
+            // compute top so first badge is half overlapping the front's bottom edge
+            var badgeTop = CardHeight - (badgeSize / 2.0);
 
-             heartBadge.AddChildren(
-                    new Image().Source(() => CreateFontImageSource("\uf004", IconFontFamily, 20, Colors.Red))
-                        .HorizontalOptions(MauiControls.LayoutOptions.Center)
-                        .VerticalOptions(MauiControls.LayoutOptions.Center)
-                );
+            // Create Horizontal stack and add individual badge frames
+            var badgesContainer = new HorizontalStackLayout()
+                .Spacing(badgeSpacing)
+                // place container so its left edge is half outside the card (negative X) and top aligned to badgeTop
+                .Margin(-badgeSize / 2.0 + 15, badgeTop, 0, 0);
 
-            heartBadge.OnTapped(() => System.Diagnostics.Debug.WriteLine("Heart tapped"));
+            // add each badge into the horizontal container
+            if (BackIconGlyphs != null)
+            {
+                foreach (var glyph in BackIconGlyphs)
+                {
+                    var badge = new Frame()
+                    {
+                        new Image().Source(() => CreateFontImageSource(glyph, IconFontFamily, (int)(badgeSize - 14), Colors.Black))
+                            .HorizontalOptions(MauiControls.LayoutOptions.Center)
+                            .VerticalOptions(MauiControls.LayoutOptions.Center)
+                    }
+                    //.CornerRadius((float)(badgeSize / 2.0))
+                    .CornerRadius(5)
+                    .Padding(6)
+                    .HasShadow(false)
+                    .BackgroundColor(Colors.White)
+                    .BorderColor(Colors.Transparent)
+                    .WidthRequest(badgeSize)
+                    .HeightRequest(badgeSize)
+                    .OnTapped(() => System.Diagnostics.Debug.WriteLine($"Badge {glyph} tapped"));
 
-            // bell badge (gray on white)
-            var bellBadge = new Frame()
-                .CornerRadius(18)
-                .Padding(6)
-                .HasShadow(false)
-                .BackgroundColor(Colors.White)
-                .BorderColor(Colors.Transparent)
-                .WidthRequest(36)
-                .HeightRequest(36)
-                .Margin(-18, 60, 0, 0);
-
-            bellBadge.AddChildren(new Image()
-                        .Source(() => CreateFontImageSource("\uf0f3", IconFontFamily, 20, Colors.Gray))
-                        .HorizontalOptions(MauiControls.LayoutOptions.Center)
-                        .VerticalOptions(MauiControls.LayoutOptions.Center)
-                );
-
-            bellBadge.OnTapped(() => System.Diagnostics.Debug.WriteLine("Bell tapped"));
+                    badgesContainer.AddChildren(badge);
+                }
+            }
 
             // ROOT layout: use Grid and layer back, front, badges
             var root = new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
             {
                 backCard,
                 front,
-                heartBadge,
-                bellBadge,
+                badgesContainer // badges added here (after front) so they appear on top
             }
             .HeightRequest(CardHeight)
             .WidthRequest(cardWidth);
@@ -374,89 +375,137 @@ namespace KryptNx.FlowNxt.App.Components4
     {
         // overlay state
         bool _overlayVisible = false;
-        VisualNode? _overlayContent = null;
         PopupSpec? _overlaySpec = null;
 
+        // animation-driven state (read by VisualNode)
+        double _backdropOpacity = 0.0;
+        double _popupOpacity = 0.0;
+        double _popupOffset = 24.0; // vertical offset (px) — animate toward 0 for slide-up
+        bool _isAnimating = false;
+
+        // cancellation for in-flight animation
+        CancellationTokenSource? _animCts;
 
         public override VisualNode Render()
         {
-            var list =
-                new VerticalStackLayout
+            List<CardView> listCard = [
+                new CardView
                 {
-                    new ContentView()
+                    Title = "Pending Actions",
+                    Description = "Short description here",
+                    Variant = CardVariant.Outline,
+                    IconGlyph = "\uf0f3",
+                    IconFontFamily = "FA",
+                    RequestShowOverlay = (spec) =>
                     {
-                        new CardView
-                        {
-                            Title = "Pending Actions",
-                            Description = "Short description here",
-                            Variant = CardVariant.Outline,
-                            IconGlyph = "\uf0f3",
-                            IconFontFamily = "FA",
-                            RequestShowOverlay = (spec) =>
-                            {
-                                _overlaySpec = spec;
-                                _overlayVisible = true;
-                                Invalidate();
-                            }
-                        }
-                    }.HeightRequest(180),
+                        _overlaySpec = spec;
+                        _overlayVisible = true;
 
-                    new ContentView
-                    {
-                        new CardView
-                        {
-                            Title = "Solid Card",
-                            Description = "More vibrant solid color",
-                            Variant = CardVariant.Solid,
-                            SolidColor = Color.FromArgb("#4CAF50"),
-                            RequestShowOverlay = (spec) =>
-                            {
-                                _overlaySpec = spec;
-                                _overlayVisible = true;
-                                Invalidate();
-                            }
-                        }
-                    }.HeightRequest(180),
+                        // reset animation state to start values
+                        _backdropOpacity = 0.0;
+                        _popupOpacity = 0.0;
+                        _popupOffset = 24.0;
 
-                    new ContentView
-                    {
-                        new CardView
-                        {
-                            Title = "Gradient Card",
-                            Description = "Smooth linear gradient",
-                            Variant = CardVariant.Gradient,
-                            GradientColors = (Color.FromArgb("#FF8A00"), Color.FromArgb("#E52E71")),
-                            RequestShowOverlay = (spec) =>
-                            {
-                                _overlaySpec = spec;
-                                _overlayVisible = true;
-                                Invalidate();
-                            }
-                        }
-                    }.HeightRequest(180),
+                        Invalidate();
 
-                    new ContentView
-                    {
-                        new CardView
+                        // start open animation on UI thread (no ElementRef required)
+                        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
                         {
-                            Title = "Image Background",
-                            Description = "Photo background with overlay",
-                            Variant = CardVariant.ImageBackground,
-                            BackgroundImage = "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80",
-                            ImageOpacity = 0.32,
-                            RequestShowOverlay = (spec) =>
-                            {
-                                _overlaySpec = spec;
-                                _overlayVisible = true;
-                                Invalidate();
-                            }
-                        }
-                    }.HeightRequest(180)
+                            // small delay to ensure UI mounted
+                            await Task.Delay(10);
+                            await AnimateShowAsync();
+                        });
+                    }
+                },
+                new CardView
+                {
+                    Title = "Solid Card",
+                    Description = "More vibrant solid color",
+                    Variant = CardVariant.Solid,
+                    SolidColor = Color.FromArgb("#4CAF50"),
+                    RequestShowOverlay = (spec) =>
+                    {
+                        _overlaySpec = spec;
+                        _overlayVisible = true;
+
+                        // reset animation state to start values
+                        _backdropOpacity = 0.0;
+                        _popupOpacity = 0.0;
+                        _popupOffset = 24.0;
+
+                        Invalidate();
+
+                        // start open animation on UI thread (no ElementRef required)
+                        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            // small delay to ensure UI mounted
+                            await Task.Delay(10);
+                            await AnimateShowAsync();
+                        });
+                    }
+                },
+                new CardView
+                {
+                    Title = "Gradient Card",
+                    Description = "Smooth linear gradient",
+                    Variant = CardVariant.Gradient,
+                    GradientColors = (Color.FromArgb("#FF8A00"), Color.FromArgb("#E52E71")),
+                    RequestShowOverlay = (spec) =>
+                    {
+                        _overlaySpec = spec;
+                        _overlayVisible = true;
+
+                        // reset animation state to start values
+                        _backdropOpacity = 0.0;
+                        _popupOpacity = 0.0;
+                        _popupOffset = 24.0;
+
+                        Invalidate();
+
+                        // start open animation on UI thread (no ElementRef required)
+                        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            // small delay to ensure UI mounted
+                            await Task.Delay(10);
+                            await AnimateShowAsync();
+                        });
+                    }
+                },
+                new CardView
+                {
+                    Title = "Image Background",
+                    Description = "Photo background with overlay",
+                    Variant = CardVariant.ImageBackground,
+                    BackgroundImage = "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80",
+                    ImageOpacity = 0.32,
+                    RequestShowOverlay = (spec) =>
+                    {
+                        _overlaySpec = spec;
+                        _overlayVisible = true;
+
+                        // reset animation state to start values
+                        _backdropOpacity = 0.0;
+                        _popupOpacity = 0.0;
+                        _popupOffset = 24.0;
+
+                        Invalidate();
+
+                        // start open animation on UI thread (no ElementRef required)
+                        Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            // small delay to ensure UI mounted
+                            await Task.Delay(10);
+                            await AnimateShowAsync();
+                        });
+                    }
                 }
-                .Spacing(12)
-                .Padding(new Thickness(6));
+            ];
 
-            // Compose page root and overlay if needed
+            var list = new VerticalStackLayout
+            {
+                listCard.Select(x => new ContentView() { x }.HeightRequest(180))
+            }.Spacing(12).Padding(new Thickness(6));
+
             var pageRoot = new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
             {
                 new ScrollView
@@ -465,83 +514,166 @@ namespace KryptNx.FlowNxt.App.Components4
                 }
             };
 
-            // If overlay requested, parent renders full-screen overlay with popup built from the stored PopupSpec.
             if (_overlayVisible && _overlaySpec != null)
             {
-                // Full-screen transparent backdrop that closes the overlay when tapped
+                // Backdrop (opacity driven by _backdropOpacity)
                 var backdrop = new BoxView()
-                    .BackgroundColor(Color.FromRgba(0, 0, 0, 0.15))
-                    .OnTapped(() =>
+                    .BackgroundColor(() => Color.FromRgba(0, 0, 0, (float)_backdropOpacity))
+                    .OnTapped(async () =>
                     {
-                        _overlayVisible = false;
-                        _overlaySpec = null;
-                        Invalidate();
+                        // hide with animation
+                        await AnimateHideAsync();
                     })
                     .GridRow(0)
                     .GridColumn(0);
 
-                // Build popup content here using _overlaySpec actions; buttons call spec action then close overlay
-                var popupFrame = new Frame()
-                    .CornerRadius(8)
-                    .HasShadow(true)
-                    .BackgroundColor(Colors.White)
-                    .BorderColor(Color.FromRgba(0, 0, 0, 0.06f))
-                    .WidthRequest(260)
-                    .Padding(0);
+                // Popup frame: opacity + top offset driven by state
+                // We'll center horizontally, but use vertical offset (slide-up) for the open animation
+                var deviceWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
+                var popupWidth = Math.Min(360, Math.Max(260, deviceWidth * 0.8));
 
-                popupFrame.AddChildren(
-                        new VerticalStackLayout()
+                // Center container that positions the popup; we'll apply offset to the popup itself.
+                var popupFrame = new Frame()
+                {
+                    new VerticalStackLayout()
                         {
-                            new Button().Text("Edit").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(() =>
+                            new Button().Text("Edit").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
                             {
                                 _overlaySpec?.OnEdit?.Invoke();
-                                _overlayVisible = false;
-                                _overlaySpec = null;
-                                Invalidate();
+                                await AnimateHideAsync();
                             }),
                             new BoxView().HeightRequest(1).BackgroundColor(Color.FromRgba(0,0,0,0.06f)),
-                            new Button().Text("View").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(() =>
+                            new Button().Text("View").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
                             {
                                 _overlaySpec?.OnView?.Invoke();
-                                _overlayVisible = false;
-                                _overlaySpec = null;
-                                Invalidate();
+                                await AnimateHideAsync();
                             }),
                             new BoxView().HeightRequest(1).BackgroundColor(Color.FromRgba(0,0,0,0.06f)),
-                            new Button().Text("Delete").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(() =>
+                            new Button().Text("Delete").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
                             {
                                 _overlaySpec?.OnDelete?.Invoke();
-                                _overlayVisible = false;
-                                _overlaySpec = null;
-                                Invalidate();
+                                await AnimateHideAsync();
                             })
                         }
-                    );
+                }
+                .CornerRadius(8)
+                .HasShadow(true)
+                .BackgroundColor(Colors.White)
+                .BorderColor(Color.FromRgba(0, 0, 0, 0.06f))
+                .WidthRequest(popupWidth)
+                .Padding(0)
+                // opacity & margin animated from state
+                .Opacity(() => _popupOpacity)
+                .Margin(0, _popupOffset, 0, 0);
 
-                // center the popup in the screen
-                var overlayContainer = new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
+                // Center popup container
+                var centered = new Grid()
                 {
-                    backdrop,
-                    popupFrame.Margin(new Thickness(0,0,0,0)) // will center via layout below
+                    new ContentView
+                    {
+                        popupFrame
+                    }
+                    .HorizontalOptions(MauiControls.LayoutOptions.Center)
+                    .VerticalOptions(MauiControls.LayoutOptions.Center)
                 };
 
-                // Instead of complex absolute positioning, place popup centered using a simple stack:
-                // We'll add the overlay as a child and then another centered container
-                pageRoot.AddChildren(
-                    backdrop,
-                    new Grid()
-                    {
-                        new ContentView()
-                            {
-                                popupFrame
-                            }
-                            .HorizontalOptions(MauiControls.LayoutOptions.Center)
-                            .VerticalOptions(MauiControls.LayoutOptions.Center)
-                    }
-                );
+                pageRoot.AddChildren(backdrop, centered);
             }
 
             return pageRoot;
+        }
+
+        // show animation: fade backdrop from 0->0.15 and popup opacity 0->1 + popupOffset 24->0
+        async Task AnimateShowAsync()
+        {
+            if (_isAnimating) return;
+            _isAnimating = true;
+            _animCts?.Cancel();
+            _animCts = new CancellationTokenSource();
+            var token = _animCts.Token;
+
+            try
+            {
+                const int frames = 12;
+                const int frameDelay = 16; // ~60fps -> 16ms per frame; 12 frames ≈ 200ms
+                for (int i = 0; i <= frames; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var t = i / (double)frames; // 0..1
+                    // ease out curve (quadratic)
+                    var ease = 1 - Math.Pow(1 - t, 2);
+
+                    _backdropOpacity = 0.15 * ease;
+                    _popupOpacity = ease; // 0->1
+                    _popupOffset = 24 * (1 - ease); // 24 -> 0
+
+                    Invalidate();
+
+                    await Task.Delay(frameDelay, token);
+                }
+
+                // ensure final values
+                _backdropOpacity = 0.15;
+                _popupOpacity = 1.0;
+                _popupOffset = 0.0;
+                Invalidate();
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AnimateShowAsync error: {ex}");
+            }
+            finally
+            {
+                _isAnimating = false;
+            }
+        }
+
+        // hide animation: reverse of show, then clear overlay
+        async Task AnimateHideAsync()
+        {
+            if (_isAnimating) return;
+            _isAnimating = true;
+            _animCts?.Cancel();
+            _animCts = new CancellationTokenSource();
+            var token = _animCts.Token;
+
+            try
+            {
+                const int frames = 10;
+                const int frameDelay = 16;
+                for (int i = 0; i <= frames; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var t = i / (double)frames; // 0..1
+                    var ease = Math.Pow(1 - t, 2); // ease in reverse
+
+                    _backdropOpacity = 0.15 * ease;
+                    _popupOpacity = ease;
+                    _popupOffset = 24 * (1 - ease);
+
+                    Invalidate();
+
+                    await Task.Delay(frameDelay, token);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AnimateHideAsync error: {ex}");
+            }
+            finally
+            {
+                // finalize and clear
+                _backdropOpacity = 0.0;
+                _popupOpacity = 0.0;
+                _popupOffset = 24.0;
+                _overlayVisible = false;
+                _overlaySpec = null;
+                Invalidate();
+
+                _isAnimating = false;
+            }
         }
     }
 }
