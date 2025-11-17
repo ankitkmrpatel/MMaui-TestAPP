@@ -80,5 +80,12 @@
 		<PackageReference Include="Reactor.Maui" Version="3.0.37" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
 	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<RuntimeHostConfigurationOption Include="MauiReactor.HotReload" Value="true" Trim="false" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net9.0-ios'">
+		<RuntimeHostConfigurationOption Include="MauiReactor.HotReload" Value="false" Trim="true" />
+	</ItemGroup>
 	
 </Project>

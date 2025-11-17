@@ -1,5 +1,4 @@
 ﻿using MauiReactor;
-using MauiReactor.HotReload;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace KryptNx.FlowNxt.App
@@ -9,12 +8,9 @@ namespace KryptNx.FlowNxt.App
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            
+
             builder
                 .UseMauiReactorApp<MainPage>()
-#if DEBUG
-                //.EnableMauiReactorHotReload()
-#endif
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("Rubik-Bold.ttf", "RubikBold");

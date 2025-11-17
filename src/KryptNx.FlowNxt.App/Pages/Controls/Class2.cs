@@ -20,60 +20,80 @@ namespace KryptNx.FlowNxt.App.Components3
         public string Title { get; set; } = "Title";
         public string Description { get; set; } = "Description";
         public CardVariant Variant { get; set; } = CardVariant.Outline;
-        public string IconGlyph { get; set; } = null;        // e.g. "\uf0f3"
+        public string IconGlyph { get; set; } = null!;        // e.g. "\uf0f3"
         public string IconFontFamily { get; set; } = "FA";   // font alias registered in MauiProgram
-        public string BackgroundImage { get; set; } = null;  // file name or url
+        public string BackgroundImage { get; set; } = null!;  // file name or url
         public Color SolidColor { get; set; } = Colors.White;
         public (Color from, Color to)? GradientColors { get; set; } = null;
+        public double ImageOpacity { get; set; } = 0.6;
 
         public override VisualNode Render()
         {
-            // single-cell overlay grid (back card peeking + front card + tilted glyph)
+            // single-cell overlay grid (back card peeking + front card + optional overlapping badge)
             IEnumerable<MauiControls.RowDefinition> rows = [new MauiControls.RowDefinition(GridLength.Star)];
             IEnumerable<MauiControls.ColumnDefinition> cols = [new MauiControls.ColumnDefinition(GridLength.Star)];
+
+            // BACK card: shifted down-right so it peeks from behind the front card
+            var backCard = new Frame
+            {
+                new Grid
+                {
+                    // back badge placeholder (this is inside back card)
+                    new BoxView()
+                        .WidthRequest(36)
+                        .HeightRequest(24)
+                        .CornerRadius(12)
+                        .BackgroundColor(Colors.DarkGray)
+                        .Margin(8, 6, 0, 0)
+                }
+            }
+            .HasShadow(false)
+            .CornerRadius(10)
+            .Padding(0)
+            .BackgroundColor(Colors.DarkGray)
+            .Margin(18, 18, 0, 0)
+            .GridRow(0)
+            .GridColumn(0);
+
+            // FRONT card
+            var front = BuildFront().GridRow(0).GridColumn(0);
+
+            // Badge/capsule that should be half-in half-out (placed above front, after front so z-order is top)
+            // We compute margin so the badge sits roughly near the left-top of back card and overlaps front slightly.
+            var overlapBadge = new Frame
+            {
+                new Label()
+                    .Text(() => "\uf058" ) // example glyph (replace with desired)
+                    //.Text(() => IconGlyph ?? string.Empty)
+                    .FontFamily(() => IconFontFamily)
+                    .FontSize(12)
+                    .HorizontalOptions(MauiControls.LayoutOptions.Center)
+                    .VerticalOptions(MauiControls.LayoutOptions.Center)
+            }
+            .CornerRadius(10)
+            .Padding(6, 4)
+            .HasShadow(false)
+            .BackgroundColor(Colors.DarkGray)
+            // Negative left/top margin would require absolute layout; instead we place with a small offset:
+            // set margin so it's visually between back and front; adjust numbers to taste
+            .Margin(10, 120, 0, 0)
+            .GridRow(0)
+            .GridColumn(0)
+            .IsVisible(() => true); // toggle if needed
+
+            // Tilted glyph (watermark) for Outline variant: move inside the front card overlay rather than top-level grid
+            // For clear z-ordering and positioning the glyph is rendered inside the front content (see BuildFront).
+
             return new Grid(rows, cols)
             {
-                // BACK card (peeking)
-                new Frame()
-                {
-                    new Grid
-                    {
-                        // little badge that visually peeks on top-left of back card
-                        new BoxView()
-                            .WidthRequest(36)
-                            .HeightRequest(24)
-                            .CornerRadius(12)
-                            .BackgroundColor(Colors.DarkGray)
-                            .Margin(8, 6, 0, 0)
-                    }
-                }
-                .HasShadow(false)
-                .CornerRadius(12)
-                .Padding(0)
-                .BackgroundColor(Colors.LightGray)
-                .GridRow(0)
-                .GridColumn(0),
-
-                // FRONT card (main)
-                BuildFront().GridRow(0).GridColumn(0),
-
-                // Tilted glyph watermark on bottom-right (Outline variant)
-                new Label()
-                    .Text(() => IconGlyph ?? string.Empty)
-                    .FontFamily(() => IconFontFamily ?? "FA")
-                    .FontSize(40)
-                    .Rotation(20)
-                    .HorizontalOptions(MauiControls.LayoutOptions.End)
-                    .VerticalOptions(MauiControls.LayoutOptions.End)
-                    .Margin(0, 0, 8, 8)
-                    .Opacity(0.12)
-                    .IsVisible(() => Variant == CardVariant.Outline && !string.IsNullOrEmpty(IconGlyph))
-                    .GridRow(0)
-                    .GridColumn(0),
+                backCard,
+                front,
+                // add the overlap badge AFTER front so it appears above front (z-order)
+                //overlapBadge
             }
-            //.RowDefinitions(new[] { GridLength.Star })   // single row full
-            //.ColumnDefinitions(new[] { GridLength.Star }) // single column full
-            .HeightRequest(160) // default sizing - change as needed
+            //.RowDefinitions(new[] { GridLength.Star })
+            //.ColumnDefinitions(new[] { GridLength.Star })
+            .HeightRequest(160)
             .WidthRequest(320);
         }
 
@@ -83,9 +103,10 @@ namespace KryptNx.FlowNxt.App.Components3
             IEnumerable<MauiControls.RowDefinition> rows = [new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto)];
             IEnumerable<MauiControls.ColumnDefinition> cols = [new(GridLength.Star)];
 
-            IEnumerable<MauiControls.RowDefinition> footerrows = [];
-            IEnumerable<MauiControls.ColumnDefinition> footercols = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)];
-            var overlay = new Grid(rows, cols)
+            IEnumerable<MauiControls.ColumnDefinition> footerCols = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)];
+
+            // Build the content overlay grid (title / desc / footer)
+            var overlay = new Grid(rows, [new(GridLength.Star)])
             {
                 // Title (row 0)
                 new Label()
@@ -100,14 +121,13 @@ namespace KryptNx.FlowNxt.App.Components3
                 new Label()
                     .Text(() => Description ?? "No Description")
                     .FontSize(13)
-                    .Opacity(0.85)
+                    .Opacity(0.95)
                     .Margin(12, 0, 12, 6)
                     .GridRow(1)
                     .GridColumn(0),
 
-
                 // Footer row (row 2): left icon, spacer, three-dots button
-                new Grid(footerrows, footercols)
+                new Grid([], footerCols)
                 {
                     new Label()
                         .Text(() => IconGlyph ?? string.Empty)
@@ -132,82 +152,116 @@ namespace KryptNx.FlowNxt.App.Components3
                 .GridColumn(0)
             };
 
+            // Create a container grid that contains the overlay + the tilted icon (so the tilted icon is guaranteed to be part of front)
+            var frontContentGrid = new Grid([new(GridLength.Star)], [new(GridLength.Star)])
+            {
+                // overlay fills grid
+                overlay.GridRow(0).GridColumn(0)
+            };
+
+            // Add tilted glyph inside the frontContentGrid, bottom-right aligned, only for Outline variant
+            frontContentGrid.AddChildren(
+                new Label()
+                    .Text(() => IconGlyph ?? string.Empty)
+                    .FontFamily(() => IconFontFamily ?? "FA")
+                    .FontSize(40)
+                    .Rotation(20)
+                    .HorizontalOptions(MauiControls.LayoutOptions.End)
+                    .VerticalOptions(MauiControls.LayoutOptions.End)
+                    .Margin(0, 0, 8, 8)
+                    .Opacity(0.12)
+                    .IsVisible(() => Variant == CardVariant.Outline && !string.IsNullOrEmpty(IconGlyph))
+                    .GridRow(0)
+                    .GridColumn(0)
+            );
+
             // front card appearance based on variant
             switch (Variant)
             {
                 case CardVariant.Outline:
                     return new Frame()
                     {
-                        overlay
+                        frontContentGrid
                     }
-                    .CornerRadius(12)
+                    .CornerRadius(10)
                     .HasShadow(true)
                     .Padding(0)
                     .BackgroundColor(Colors.White)
-                    .BorderColor(Colors.LightGray);
+                    .BorderColor(Colors.LightGray)
+                    // bring front slightly up-left so back peeks down-right
+                    .Margin(0, 0, 18, 18);
 
                 case CardVariant.Solid:
                     return new Frame()
                     {
-                        overlay
+                        frontContentGrid
                     }
                     .CornerRadius(10)
                     .HasShadow(true)
                     .Padding(0)
                     .BackgroundColor(SolidColor)
-                    .BorderColor(Colors.Transparent);
+                    .BorderColor(Colors.Transparent)
+                    .Margin(0, 0, 18, 18);
 
                 case CardVariant.Gradient:
-                    // Reactor v3 may not provide cross-platform LinearGradientBrush in all targets,
-                    // so we fallback to a midpoint solid color that compiles everywhere.
                     var (from, to) = GradientColors ?? (Colors.MediumPurple, Colors.LightBlue);
                     var mid = Blend(from, to, 0.5f);
                     return new Frame()
                     {
-                        overlay
+                        frontContentGrid
                     }
                     .CornerRadius(10)
                     .HasShadow(true)
                     .Padding(0)
                     .BackgroundColor(mid)
-                    .BorderColor(Colors.Transparent);
+                    .BorderColor(Colors.Transparent)
+                    .Margin(0, 0, 18, 18);
 
                 case CardVariant.ImageBackground:
-                    // image as background with overlay content
+                    // image as background with overlay content; apply ImageOpacity to the image so overlay text is readable
+                    var imageGrid = new Grid([new(GridLength.Star)], [new(GridLength.Star)])
+                    {
+                        // background image (first child)
+                        new Image()
+                            .Source(() =>
+                            {
+                                if (string.IsNullOrEmpty(BackgroundImage)) return null!;
+                                if (BackgroundImage.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                    return MauiControls.ImageSource.FromUri(new Uri(BackgroundImage));
+                                return MauiControls.ImageSource.FromFile(BackgroundImage);
+                            })
+                            .Aspect(Aspect.AspectFill)
+                            .Opacity(ImageOpacity)
+                            .GridRow(0)
+                            .GridColumn(0),
+
+                        // overlay above image
+                        overlay.GridRow(0).GridColumn(0)
+                    };
+
+                    // add tilted glyph (if outline-like behaviour required don't show it here; keep hidden)
+                    // (we won't show tilted glyph for image background by default)
+
                     return new Frame()
                     {
-                        new Grid
-                        {
-                            // background image
-                            new Image()
-                                .Source(() => {
-                                    if (string.IsNullOrEmpty(BackgroundImage)) return null!;
-                                    if (BackgroundImage.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                                        return MauiControls.ImageSource.FromUri(new Uri(BackgroundImage));
-                                    return MauiControls.ImageSource.FromFile(BackgroundImage);
-                                })
-                                .Aspect(Aspect.AspectFill)
-                                .GridRow(0)
-                                .GridColumn(0),
-
-                            // overlay content above the image
-                            overlay.GridRow(0).GridColumn(0)
-                        }
+                        imageGrid
                     }
                     .CornerRadius(10)
                     .HasShadow(true)
                     .Padding(0)
-                    .BackgroundColor(Colors.Transparent);
+                    .BackgroundColor(Colors.White)
+                    .Margin(0, 0, 18, 18);
 
                 default:
                     return new Frame()
                     {
-                        overlay
+                        frontContentGrid
                     }
                     .CornerRadius(10)
                     .HasShadow(true)
                     .Padding(0)
-                    .BackgroundColor(Colors.White);
+                    .BackgroundColor(Colors.White)
+                    .Margin(0, 0, 18, 18);
             }
         }
 
@@ -232,7 +286,7 @@ namespace KryptNx.FlowNxt.App.Components3
     }
 
     // Demo page showing how to use CardView within Reactor render
-    public class CardDemoPage : Component
+    public partial class CardDemoPage : Component
     {
         public override VisualNode Render()
         {
@@ -240,7 +294,6 @@ namespace KryptNx.FlowNxt.App.Components3
             {
                 new VerticalStackLayout
                 {
-                    
                     // Wrap CardView inside ContentView (so Reactor treats it as IView and margins work)
                     new ContentView()
                     {
@@ -252,7 +305,7 @@ namespace KryptNx.FlowNxt.App.Components3
                             IconGlyph = "\uf0f3",
                             IconFontFamily = "FA"
                         }
-                    }.HeightRequest(160),
+                    }.HeightRequest(180),
 
                     new ContentView()
                     {
@@ -263,7 +316,7 @@ namespace KryptNx.FlowNxt.App.Components3
                             Variant = CardVariant.Solid,
                             SolidColor = Colors.LightGreen
                         }
-                    }.HeightRequest(160),
+                    }.HeightRequest(180),
 
                     new ContentView()
                     {
@@ -274,7 +327,7 @@ namespace KryptNx.FlowNxt.App.Components3
                             Variant = CardVariant.Gradient,
                             GradientColors = (Colors.Orange, Colors.Purple)
                         }
-                    }.HeightRequest(160),
+                    }.HeightRequest(180),
 
                     new ContentView()
                     {
@@ -285,10 +338,10 @@ namespace KryptNx.FlowNxt.App.Components3
                             Variant = CardVariant.ImageBackground,
                             BackgroundImage = "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80"
                         }
-                    }.HeightRequest(160),
+                    }.HeightRequest(180),
                 }
                 .Spacing(12)
-                .Padding(new Thickness(12)),
+                .Padding(new Thickness(4)),
             };
         }
     }
