@@ -24,7 +24,7 @@ namespace KryptNx.FlowNxt.App.Components4
         public Action? OnDelete { get; set; }
     }
 
-    public class CardView : Component
+    public partial class CardView : Component
     {
         // Public properties (same as before)
         public string Title { get; set; } = "Title";
@@ -36,7 +36,8 @@ namespace KryptNx.FlowNxt.App.Components4
         public Color SolidColor { get; set; } = Colors.White;
         public (Color from, Color to)? GradientColors { get; set; } = null;
         
-        public IList<string> BackIconGlyphs { get; set; } = new List<string> { "\uf004", "\uf0f3" };
+        //public IList<string> BackIconGlyphs { get; set; } = new List<string> { "\uf004", "\uf0f3" };
+        public IList<string> BackIconGlyphs { get; set; } = [];
 
         public double ImageOpacity { get; set; } = 0.36;
         public double CardHeight { get; set; } = 160;
@@ -58,15 +59,6 @@ namespace KryptNx.FlowNxt.App.Components4
             var deviceWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
             var cardWidth = Math.Max(280, deviceWidth - 24);
 
-            // badge sizing and spacing
-            var badgeSize = 36.0;
-            var badgeSpacing = 8.0;
-            var backIconCount = Math.Max(0, BackIconGlyphs?.Count ?? 0);
-
-            // compute extra height for back card so it grows when there are more badges
-            var extraBackHeight = backIconCount <= 1 ? 0 : 0; // optionally keep back card same height; change if you want it grow
-            var backCardHeight = CardHeight + extraBackHeight;
-
             // BACK CARD (peeking)
             var backCard = new Frame()
                 .HasShadow(false)
@@ -75,88 +67,200 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.LightGray)
                 .Margin(22, 30, 0, 0)
                 .WidthRequest(cardWidth)
-                .HeightRequest(backCardHeight)
+                .HeightRequest(CardHeight)
                 .GridRow(0)
                 .GridColumn(0);
-            
-            // make a menu request handler that packages the popup spec and asks parent to show it
-            Action raisePopup = () =>
-            {
-                // Build PopupSpec with actions that will both invoke the CardView's callbacks (if any)
-                // and can be used by the parent to perform additional logic.
-                var spec = new PopupSpec
-                {
-                    OnEdit = () => OnEdit?.Invoke(),
-                    OnView = () => OnView?.Invoke(),
-                    OnDelete = () => OnDelete?.Invoke()
-                };
 
-                RequestShowOverlay?.Invoke(spec);
-            };
-
-            // menu button placed inside back card
-            var backMenuBtn = new Button()
-                .Text("⋯")
-                .FontSize(18)
-                .BackgroundColor(Colors.Transparent)
-                .HorizontalOptions(MauiControls.LayoutOptions.End)
-                .VerticalOptions(MauiControls.LayoutOptions.End)
-                .Margin(0, 0, 4, 4)
-                .Padding(0, 0, 8, 0)
-                .OnClicked(() => raisePopup());
 
             //backInnerGrid.AddChildren(backMenuBtn);
-            backCard.AddChildren(backMenuBtn);
+            //backCard.AddChildren(backMenuBtn);
 
             // FRONT CARD
             var front = BuildFront(cardWidth);
 
-            // BADGES container: horizontal stack positioned so first badge is half-overlapping front bottom
-            // compute top so first badge is half overlapping the front's bottom edge
-            var badgeTop = CardHeight - (badgeSize / 2.0);
+            //// BADGES container: horizontal stack positioned so first badge is half-overlapping front bottom
+            //// compute top so first badge is half overlapping the front's bottom edge
+            //var badgeTop = CardHeight - (badgeSize / 2.0);
 
-            // Create Horizontal stack and add individual badge frames
-            var badgesContainer = new HorizontalStackLayout()
-                .Spacing(badgeSpacing)
-                // place container so its left edge is half outside the card (negative X) and top aligned to badgeTop
-                .Margin(-badgeSize / 2.0 + 15, badgeTop, 0, 0);
+            //// Create Horizontal stack and add individual badge frames
+            //var badgesContainer = new HorizontalStackLayout()
+            //    .Spacing(badgeSpacing)
+            //    // place container so its left edge is half outside the card (negative X) and top aligned to badgeTop
+            //    .Margin(-badgeSize / 2.0 + 15, badgeTop, 0, 0);
 
-            // add each badge into the horizontal container
-            if (BackIconGlyphs != null)
+            //// add each badge into the horizontal container
+            //if (BackIconGlyphs != null)
+            //{
+            //    foreach (var glyph in BackIconGlyphs)
+            //    {
+            //        var badge = new Frame()
+            //        {
+            //            new Image().Source(() => CreateFontImageSource(glyph, IconFontFamily, (int)(badgeSize - 14), Colors.Black))
+            //                .HorizontalOptions(MauiControls.LayoutOptions.Center)
+            //                .VerticalOptions(MauiControls.LayoutOptions.Center)
+            //        }
+            //        //.CornerRadius((float)(badgeSize / 2.0))
+            //        .CornerRadius(5)
+            //        .Padding(6)
+            //        .HasShadow(false)
+            //        .BackgroundColor(Colors.White)
+            //        .BorderColor(Colors.Transparent)
+            //        .WidthRequest(badgeSize)
+            //        .HeightRequest(badgeSize)
+            //        .OnTapped(() => System.Diagnostics.Debug.WriteLine($"Badge {glyph} tapped"));
+
+            //        badgesContainer.AddChildren(badge);
+            //    }
+            //}
+
+            var badgeSize = 28.0;         // slightly smaller for footer
+            var badgeSpacing = 6.0;
+            var backIconCount = Math.Max(0, BackIconGlyphs?.Count ?? 0);
+
+            // extra footer height only if we have icons
+            var footerHeight = backIconCount > 0 ? badgeSize + 8.0 : 0.0;
+
+            // back card is front height + footer area (if any)
+            var backCardHeight = CardHeight + badgeSize;
+
+            // footer goes only if we have icons OR we always want menu at bottom
+            if (backIconCount > 0)
             {
-                foreach (var glyph in BackIconGlyphs)
+                // --- MENU BUTTON (bottom-right inside back card) ---
+                var backMenuBtn = new Button()
+                    .Text("⋯")
+                    .FontSize(18)
+                    .BackgroundColor(Colors.Transparent)
+                    .HorizontalOptions(MauiControls.LayoutOptions.End)
+                    .VerticalOptions(MauiControls.LayoutOptions.Center)
+                    .Margin(0, 0, 4, 0)
+                    .Padding(0, 0, 8, 0)
+                    .OnClicked(() => RaisePopup());
+
+                // --- HORIZONTAL BADGES (bottom-left inside back card) ---
+                var badgesRow = new HorizontalStackLayout()
+                    .Spacing(badgeSpacing)
+                    .Padding(0, 4, 4, 4)
+                    .HorizontalOptions(MauiControls.LayoutOptions.Start)
+                    .VerticalOptions(MauiControls.LayoutOptions.Center);
+
+                // add each badge (as Label inside Frame)
+                int i = 0;
+                foreach (var glyph in BackIconGlyphs!)
                 {
                     var badge = new Frame()
                     {
-                        new Image().Source(() => CreateFontImageSource(glyph, IconFontFamily, (int)(badgeSize - 14), Colors.Black))
+                        new Label()
+                            .Text(glyph)                         // <-- Label with glyph
+                            .FontFamily(IconFontFamily)          // reuse same alias as other icons
+                            .FontSize(badgeSize - 8)
                             .HorizontalOptions(MauiControls.LayoutOptions.Center)
                             .VerticalOptions(MauiControls.LayoutOptions.Center)
                     }
-                    //.CornerRadius((float)(badgeSize / 2.0))
                     .CornerRadius(5)
-                    .Padding(6)
+                    .Padding(4)
                     .HasShadow(false)
                     .BackgroundColor(Colors.White)
                     .BorderColor(Colors.Transparent)
                     .WidthRequest(badgeSize)
                     .HeightRequest(badgeSize)
+                    .Margin(i++ == 0 ? -badgeSize / 2.0 : 0, 0, 0, 0)          // <-- half-outside horizontally
                     .OnTapped(() => System.Diagnostics.Debug.WriteLine($"Badge {glyph} tapped"));
 
-                    badgesContainer.AddChildren(badge);
+                    badgesRow.AddChildren(badge);
                 }
+
+                // --- FOOTER GRID INSIDE BACK CARD ---
+                // row 0 = everything else in back card (capsule, etc.)
+                // row 1 = footer row (badges left + spacer + menu right)
+                var backCardGrid = new Grid(
+                    [
+                        new(GridLength.Star),
+                        new(footerHeight > 0 ? GridLength.Auto : GridLength.Auto)
+                    ],
+                    [
+                        new(GridLength.Auto),
+                        new(GridLength.Star),
+                        new(GridLength.Auto)
+                    ]);
+
+                // top-left capsule in row 0
+                backCardGrid.AddChildren(
+                    new BoxView()
+                        .WidthRequest(36)
+                        .HeightRequest(24)
+                        .CornerRadius(12)
+                        .BackgroundColor(Colors.DarkGray)
+                        .Margin(8, 6, 0, 0)
+                        .GridRow(0)
+                        .GridColumn(0)
+                );
+
+                backCardGrid.AddChildren(
+                    badgesRow
+                        .GridRow(1)
+                        .GridColumn(0),
+
+                    new BoxView()
+                        .BackgroundColor(Colors.Transparent)
+                        .GridRow(1)
+                        .GridColumn(1),
+
+                    backMenuBtn
+                        .GridRow(1)
+                        .GridColumn(2)
+                );
+
+                // finally, make backCard's content be the grid
+                backCard.HeightRequest(backCardHeight);
+                backCard.AddChildren(backCardGrid);
+            }
+            else
+            {
+                //menu button placed inside back card
+                var backMenuBtn = new Button()
+                    .Text("⋯")
+                    .FontSize(18)
+                    .BackgroundColor(Colors.Transparent)
+                    .HorizontalOptions(MauiControls.LayoutOptions.End)
+                    .VerticalOptions(MauiControls.LayoutOptions.End)
+                    .Margin(0, 0, 4, 4)
+                    .Padding(0, 0, 8, 0)
+                    .OnClicked(() => RaisePopup());
+
+                // finally, make backCard's content be the grid
+                backCard.AddChildren(backMenuBtn);
             }
 
             // ROOT layout: use Grid and layer back, front, badges
-            var root = new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
+            var root = new Grid([ new (GridLength.Auto), new (GridLength.Auto) ], [ new(GridLength.Star)])
             {
                 backCard,
                 front,
-                badgesContainer // badges added here (after front) so they appear on top
             }
-            .HeightRequest(CardHeight)
+            .HeightRequest(backIconCount > 0 ? backCardHeight : CardHeight)
             .WidthRequest(cardWidth);
 
-            return root;
+            return new ContentView() 
+            {
+                root
+            }.HeightRequest(backIconCount > 0 ? 210 : 180);
+        }
+
+        private void RaisePopup()
+        {
+            System.Diagnostics.Debug.WriteLine($"Popup Button tapped");
+
+            // Build PopupSpec with actions that will both invoke the CardView's callbacks (if any)
+            // and can be used by the parent to perform additional logic.
+            var spec = new PopupSpec
+            {
+                OnEdit = () => OnEdit?.Invoke(),
+                OnView = () => OnView?.Invoke(),
+                OnDelete = () => OnDelete?.Invoke()
+            };
+
+            RequestShowOverlay?.Invoke(spec);
         }
 
         VisualNode BuildFront(double cardWidth)
@@ -166,7 +270,7 @@ namespace KryptNx.FlowNxt.App.Components4
             {
                 // title
                 new Label()
-                    .Text(() => Title ?? "No Title")
+                    .Text(() => "A" + Title ?? "No Title")
                     .FontSize(20)
                     .FontAttributes(MauiControls.FontAttributes.Bold)
                     .Margin(12, 8, 12, 2)
@@ -290,7 +394,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 case CardVariant.ImageBackground:
                     return new Frame()
                     {
-                        new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
+                        new Grid([new(GridLength.Star)], [new (GridLength.Star)])
                         {
                             new Image()
                                 .Source(() =>
@@ -307,11 +411,10 @@ namespace KryptNx.FlowNxt.App.Components4
 
                             new BoxView()
                                 .Background(new MauiControls.LinearGradientBrush(
-                                    new MauiControls.GradientStopCollection
-                                    {
-                                        new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.28f), 0f),
-                                        new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.08f), 1f)
-                                    },
+                                    [
+                                        new(Color.FromRgba(0,0,0,0.28f), 0f),
+                                        new(Color.FromRgba(0,0,0,0.08f), 1f)
+                                    ],
                                     new Point(0,0),
                                     new Point(0,1)
                                 ))
@@ -324,7 +427,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     .CornerRadius(Corner)
                     .HasShadow(true)
                     .Padding(0)
-                    .BackgroundColor(Colors.Transparent)
+                    .BackgroundColor(Colors.White)
                     .Margin(0, 0, 18, 18)
                     .WidthRequest(cardWidth)
                     .HeightRequest(CardHeight);
@@ -396,6 +499,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     Variant = CardVariant.Outline,
                     IconGlyph = "\uf0f3",
                     IconFontFamily = "FA",
+                    BackIconGlyphs = ["\uf004", "\uf0f3"],
                     RequestShowOverlay = (spec) =>
                     {
                         _overlaySpec = spec;
@@ -503,8 +607,9 @@ namespace KryptNx.FlowNxt.App.Components4
 
             var list = new VerticalStackLayout
             {
-                listCard.Select(x => new ContentView() { x }.HeightRequest(180))
-            }.Spacing(12).Padding(new Thickness(6));
+                listCard /*.Select(x => new ContentView() { x }.HeightRequest(220))*/
+            }
+            .Spacing(12).Padding(new Thickness(6));
 
             var pageRoot = new Grid(new[] { new Microsoft.Maui.Controls.RowDefinition(GridLength.Star) }, new[] { new Microsoft.Maui.Controls.ColumnDefinition(GridLength.Star) })
             {
