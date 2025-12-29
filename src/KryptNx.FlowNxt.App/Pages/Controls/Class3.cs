@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MauiReactor;
@@ -36,14 +35,14 @@ namespace KryptNx.FlowNxt.App.Components4
         public string IconFontFamily { get; set; } = "FA";     // alias defined in MauiProgram
 
         // Back icon badges (bottom-left)
-        public IList<string> BackIconGlyphs { get; set; } = new List<string>(); // e.g. { "\uf004", "\uf0f3" }
+        public IList<string> BackIconGlyphs { get; set; } = []; // e.g. { "\uf004", "\uf0f3" }
 
         // Appearance
         public string BackgroundImage { get; set; } = "";
         public Color SolidColor { get; set; } = Colors.White;
         public (Color from, Color to)? GradientColors { get; set; } = null;
         public double ImageOpacity { get; set; } = 0.36;
-        public double CardHeight { get; set; } = 160;
+        public double CardHeight { get; set; } = 150;
 
         // Callbacks
         public Action? OnEdit { get; set; }
@@ -57,6 +56,8 @@ namespace KryptNx.FlowNxt.App.Components4
 
         public override VisualNode Render()
         {
+            BackIconGlyphs ??= [];
+
             // responsive width
             var deviceWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
             var cardWidth = Math.Min(deviceWidth * 0.9, 360);
@@ -115,7 +116,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     .GridColumn(0);
 
                 int index = 0;
-                foreach (var glyph in BackIconGlyphs)
+                foreach (var glyph in BackIconGlyphs!)
                 {
                     var badge = new Frame()
                     {
@@ -219,37 +220,12 @@ namespace KryptNx.FlowNxt.App.Components4
                     .Margin(12, 0, 12, 6)
                     .GridRow(1)
                     .GridColumn(0),
-
-                // footer: left icon + spacer (no menu here)
-                new Grid(
-                    new MauiControls.RowDefinition[] { },
-                    new[]
-                    {
-                        new MauiControls.ColumnDefinition(GridLength.Auto),
-                        new MauiControls.ColumnDefinition(GridLength.Star),
-                        new MauiControls.ColumnDefinition(GridLength.Auto)
-                    })
-                {
-                    new Label()
-                        .Text(() => IconGlyph ?? string.Empty)
-                        .FontFamily(() => IconFontFamily ?? "FA")
-                        .FontSize(16)
-                        .VerticalOptions(MauiControls.LayoutOptions.Center)
-                        .IsVisible(() => !string.IsNullOrEmpty(IconGlyph))
-                        .GridColumn(0),
-
-                    new BoxView()
-                        .BackgroundColor(Colors.Transparent)
-                        .GridColumn(1)
-                }
-                .GridRow(2)
-                .GridColumn(0)
             };
 
             // front content grid holds overlay + watermark glyph
             var frontContentGrid = new Grid(
-                new[] { new MauiControls.RowDefinition(GridLength.Star) },
-                new[] { new MauiControls.ColumnDefinition(GridLength.Star) })
+                [new MauiControls.RowDefinition(GridLength.Star)],
+                [new MauiControls.ColumnDefinition(GridLength.Star)])
             {
                 overlay.GridRow(0).GridColumn(0)
             };
@@ -315,8 +291,8 @@ namespace KryptNx.FlowNxt.App.Components4
                         .GridColumn(0);
 
                     var gradientGrid = new Grid(
-                        new[] { new MauiControls.RowDefinition(GridLength.Star) },
-                        new[] { new MauiControls.ColumnDefinition(GridLength.Star) })
+                        [new MauiControls.RowDefinition(GridLength.Star)],
+                        [new MauiControls.ColumnDefinition(GridLength.Star)])
                     {
                         gradBox,
                         overlay.GridRow(0).GridColumn(0)
@@ -339,8 +315,8 @@ namespace KryptNx.FlowNxt.App.Components4
                     return new Frame()
                     {
                         new Grid(
-                            new[] { new MauiControls.RowDefinition(GridLength.Star) },
-                            new[] { new MauiControls.ColumnDefinition(GridLength.Star) })
+                            [new MauiControls.RowDefinition(GridLength.Star)],
+                            [new MauiControls.ColumnDefinition(GridLength.Star)])
                         {
                             new Image()
                                 .Source(() =>
@@ -357,11 +333,10 @@ namespace KryptNx.FlowNxt.App.Components4
 
                             new BoxView()
                                 .Background(new MauiControls.LinearGradientBrush(
-                                    new MauiControls.GradientStopCollection
-                                    {
+                                    [
                                         new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.28f), 0f),
                                         new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.08f), 1f)
-                                    },
+                                    ],
                                     new Point(0,0),
                                     new Point(0,1)
                                 ))
@@ -448,7 +423,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     SolidColor = solid ?? Colors.White,
                     GradientColors = gradient,
                     BackgroundImage = image ?? "",
-                    BackIconGlyphs = backGlyphs ?? new List<string>(),
+                    BackIconGlyphs = backGlyphs ?? [],
                     RequestShowOverlay = (spec) =>
                     {
                         _overlaySpec = spec;
@@ -473,7 +448,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     "Pending Actions",
                     "Short description here",
                     CardVariant.Outline,
-                    backGlyphs: new List<string> { "\uf004", "\uf0f3" } // heart + bell
+                    backGlyphs: ["\uf004", "\uf0f3"] // heart + bell
                 ),
                 MakeCard(
                     "Solid Card",
@@ -498,8 +473,8 @@ namespace KryptNx.FlowNxt.App.Components4
             .Padding(new Thickness(8));
 
             var pageRoot = new Grid(
-                new[] { new MauiControls.RowDefinition(GridLength.Star) },
-                new[] { new MauiControls.ColumnDefinition(GridLength.Star) })
+                [new MauiControls.RowDefinition(GridLength.Star)],
+                [new MauiControls.ColumnDefinition(GridLength.Star)])
             {
                 new ScrollView
                 {
