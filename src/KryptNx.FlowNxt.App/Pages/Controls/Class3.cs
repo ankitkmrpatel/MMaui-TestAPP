@@ -68,7 +68,7 @@ namespace KryptNx.FlowNxt.App.Components4
             var hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
 
             // extra vertical space so badges aren't clipped
-            var extraHeight = hasBadges ? badgeSize : 0.0;
+            var extraHeight = hasBadges ? badgeSize + 15 : 5.0;
             var totalHeight = CardHeight + extraHeight;
 
             // BACK card (peeking)
@@ -79,7 +79,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.LightGray)
                 .Margin(18, 18, 0, 0)          // slight peek down-right
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight)     // front visual height
+                .HeightRequest(CardHeight + extraHeight)     // front visual height
                 .GridRow(0)
                 .GridColumn(0);
 
@@ -105,13 +105,14 @@ namespace KryptNx.FlowNxt.App.Components4
             if (hasBadges)
             {
                 // top so first badge slightly below front-card bottom, not behind it
-                var badgeTop = CardHeight - (badgeSize / 2.0) + 4;
+                var badgeTop = CardHeight - (badgeSize + 30);
+                badgeTop = 168;
 
                 badgesRow = new HorizontalStackLayout()
                     .Spacing(badgeSpacing)
                     .HorizontalOptions(MauiControls.LayoutOptions.Start)
                     .VerticalOptions(MauiControls.LayoutOptions.Start)
-                    .Margin(-badgeSize / 2.0 + 16, badgeTop, 0, 0) // half out left, slightly below
+                    .Margin(-badgeSize / 2.0 + 12, badgeTop, 0, 0) // half out left, slightly below
                     .GridRow(0)
                     .GridColumn(0);
 
@@ -123,18 +124,18 @@ namespace KryptNx.FlowNxt.App.Components4
                         new Label()
                             .Text(glyph)
                             .FontFamily(IconFontFamily)
-                            .FontSize(badgeSize - 6)
+                            .FontSize(badgeSize - 12)
                             .HorizontalOptions(MauiControls.LayoutOptions.Center)
                             .VerticalOptions(MauiControls.LayoutOptions.Center)
                     }
                     .CornerRadius(5)
-                    .Padding(4)
+                    .Padding(5)
                     .HasShadow(false)
                     .BackgroundColor(Colors.White)
-                    .BorderColor(Colors.Transparent)
+                    .BorderColor(Colors.LightGray)
                     .WidthRequest(badgeSize)
                     .HeightRequest(badgeSize)
-                    .Margin(index == 0 ? 0 : 0, 0, 0, 0) // we already offset whole stack with negative margin
+                    //.Margin(index == 0 ? 0 : 0, 0, 0, 0) // we already offset whole stack with negative margin
                     .OnTapped(() => System.Diagnostics.Debug.WriteLine($"Badge {glyph} tapped"));
 
                     badgesRow.AddChildren(badge);
@@ -164,9 +165,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 new[] { new MauiControls.RowDefinition(GridLength.Star) },
                 new[] { new MauiControls.ColumnDefinition(GridLength.Star) })
             {
-                backCard,
-                front,
-                backMenuBtn
+                backCard
             }
             .HeightRequest(totalHeight)
             .WidthRequest(cardWidth);
@@ -175,6 +174,9 @@ namespace KryptNx.FlowNxt.App.Components4
             {
                 root.AddChildren(badgesRow);
             }
+
+            root.AddChildren(front);
+            root.AddChildren(backMenuBtn);
 
             return root;
         }
