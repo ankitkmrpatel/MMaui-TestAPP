@@ -98,7 +98,6 @@ namespace KryptNx.FlowNxt.App.Components4
             var badgeSize = 24.0;
             var badgeSpacing = 6.0;
             var hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
-            var extraSize = hasBadges ? 16 : 0;
 
             var backCard = new Frame()
                 .HasShadow(false)
@@ -107,7 +106,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.LightGray)
                 .Margin(18, 18, 0, 0)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight + extraSize);
+                .HeightRequest(CardHeight + (hasBadges ? badgeSize + 6 : 0));
 
             var front = BuildFront(cardWidth).GridRow(0).GridColumn(0);
 
@@ -117,7 +116,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.Transparent)
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
-                .Margin(0, CardHeight - 32, 10, 0)
+                .Margin(0, CardHeight - 16, 0, 0)
                 .Padding(0, 0, 8, 0)
                 .OnClicked(() => RaisePopup())
                 .GridRow(0)
@@ -126,7 +125,7 @@ namespace KryptNx.FlowNxt.App.Components4
             HorizontalStackLayout? badgesRow = null;
             if (hasBadges)
             {
-                var badgeTop = CardHeight + extraSize;
+                var badgeTop = CardHeight + 6;
 
                 badgesRow = new HorizontalStackLayout()
                     .Spacing(badgeSpacing)
@@ -168,12 +167,11 @@ namespace KryptNx.FlowNxt.App.Components4
             }
             .HeightRequest(CardHeight)
             .WidthRequest(cardWidth)
-            .Margin(0, 0, 0, 16);
+            .Margin(0, 0, 0, hasBadges ? badgeSize : 16);
 
             if (badgesRow != null)
             {
                 root.AddChildren(badgesRow);
-                root = root.HeightRequest(CardHeight + extraSize);
             }
 
             root.AddChildren(backMenuBtn);
