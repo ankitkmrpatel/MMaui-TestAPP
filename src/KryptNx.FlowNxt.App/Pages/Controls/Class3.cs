@@ -98,9 +98,7 @@ namespace KryptNx.FlowNxt.App.Components4
             var badgeSize = 24.0;
             var badgeSpacing = 6.0;
             var hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
-
-            var extraHeight = hasBadges ? badgeSize + 15 : 5.0;
-            var totalHeight = CardHeight + extraHeight;
+            var extraSize = hasBadges ? 16 : 0;
 
             var backCard = new Frame()
                 .HasShadow(false)
@@ -109,9 +107,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.LightGray)
                 .Margin(18, 18, 0, 0)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight + extraHeight)
-                .GridRow(0)
-                .GridColumn(0);
+                .HeightRequest(CardHeight + extraSize);
 
             var front = BuildFront(cardWidth).GridRow(0).GridColumn(0);
 
@@ -130,12 +126,10 @@ namespace KryptNx.FlowNxt.App.Components4
             HorizontalStackLayout? badgesRow = null;
             if (hasBadges)
             {
-                var badgeTop = CardHeight - badgeSize - 18;
+                var badgeTop = CardHeight + extraSize;
 
                 badgesRow = new HorizontalStackLayout()
                     .Spacing(badgeSpacing)
-                    .HorizontalOptions(MauiControls.LayoutOptions.Start)
-                    .VerticalOptions(MauiControls.LayoutOptions.Start)
                     .Margin(-badgeSize / 2.0 + 12, badgeTop, 0, 0)
                     .GridRow(0)
                     .GridColumn(0);
@@ -172,12 +166,14 @@ namespace KryptNx.FlowNxt.App.Components4
                 backCard,
                 front
             }
-            .HeightRequest(totalHeight)
-            .WidthRequest(cardWidth);
+            .HeightRequest(CardHeight)
+            .WidthRequest(cardWidth)
+            .Margin(0, 0, 0, 16);
 
             if (badgesRow != null)
             {
                 root.AddChildren(badgesRow);
+                root = root.HeightRequest(CardHeight + extraSize);
             }
 
             root.AddChildren(backMenuBtn);
