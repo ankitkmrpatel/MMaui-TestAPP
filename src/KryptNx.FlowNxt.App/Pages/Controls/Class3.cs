@@ -1,10 +1,15 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MauiReactor;
 using MauiReactor.Compatibility;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KryptNx.FlowNxt.App.Components4
 {
@@ -51,8 +56,7 @@ namespace KryptNx.FlowNxt.App.Components4
 
         public static Color Blend(Color a, Color b, float t)
         {
-            if (t < 0) t = 0;
-            if (t > 1) t = 1;
+            t = Math.Clamp(t, 0, 1);
 
             return Color.FromRgba(a.Red + (b.Red - a.Red) * t, a.Green + (b.Green - a.Green) * t,
                 a.Blue + (b.Blue - a.Blue) * t, a.Alpha + (b.Alpha - a.Alpha) * t);
@@ -65,10 +69,10 @@ namespace KryptNx.FlowNxt.App.Components4
         public string Title { get; set; } = "Title";
         public string Description { get; set; } = "Description";
         public CardVariant Variant { get; set; } = CardVariant.Outline;
-
+        
         // Icon on front card and watermark
-        public string IconGlyph { get; set; } = "\uf0f3";      // FontAwesome bell
-        public string IconFontFamily { get; set; } = "FA";     // alias defined in MauiProgram
+        public string IconGlyph { get; set; } = "\uf0f3";   // FontAwesome bell
+        public string IconFontFamily { get; set; } = "FA";  // alias defined in MauiProgram
 
         // Back icon badges (bottom-left)
         public IList<string> BackIconGlyphs { get; set; } = []; // e.g. { "\uf004", "\uf0f3" }
@@ -76,7 +80,7 @@ namespace KryptNx.FlowNxt.App.Components4
         // Appearance
         public string BackgroundImage { get; set; } = "";
         public Color SolidColor { get; set; } = Colors.White;
-        public (Color from, Color to)? GradientColors { get; set; } = null;
+        public (Color from, Color to)? GradientColors { get; set; }
         public double ImageOpacity { get; set; } = 0.36;
         public double CardHeight { get; set; } = 150;
 
@@ -93,22 +97,32 @@ namespace KryptNx.FlowNxt.App.Components4
         public override VisualNode Render()
         {
             var deviceWidth = CardViewHelpers.GetDeviceWidth();
-            var cardWidth = Math.Min(deviceWidth * 0.9, 360);
+            var rootWidth = deviceWidth * 0.92;
+            var cardWidth = Math.Min(rootWidth * 0.96, 360);
 
-            var badgeSize = 24.0;
-            var badgeSpacing = 6.0;
-            var hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
+            bool hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
+            double badgeSize = 24;
+            double badgeHeight = hasBadges ? 36 : 0;
+            var rootHeight = CardHeight + 10 + (hasBadges ? badgeSize : 0); // reserve visual space once
+
+            var cardLayer = new Grid()
+                .HeightRequest(rootHeight);
 
             var backCard = new Frame()
-                .HasShadow(false)
                 .CornerRadius(Corner)
-                .Padding(0)
-                .BackgroundColor(Colors.LightGray)
-                .Margin(18, 18, 0, 0)
+                .HasShadow(false)
+                .BackgroundColor(Colors.DarkGrey)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight + (hasBadges ? badgeSize + 6 : 0));
+                .HeightRequest(CardHeight + (hasBadges ? badgeSize : 0))
+                .HorizontalOptions(MauiControls.LayoutOptions.End)
+                .VerticalOptions(MauiControls.LayoutOptions.Start)
+                .TranslationY(20);
 
-            var front = BuildFront(cardWidth).GridRow(0).GridColumn(0);
+            var frontCard = BuildFront(cardWidth)
+                .WidthRequest(cardWidth)
+                .HeightRequest(CardHeight)
+                .HorizontalOptions(MauiControls.LayoutOptions.Start)
+                .VerticalOptions(MauiControls.LayoutOptions.Start);
 
             var backMenuBtn = new Button()
                 .Text("⋯")
@@ -116,65 +130,67 @@ namespace KryptNx.FlowNxt.App.Components4
                 .BackgroundColor(Colors.Transparent)
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
-                .Margin(0, CardHeight - 16, 0, 0)
-                .Padding(0, 0, 8, 0)
-                .OnClicked(() => RaisePopup())
-                .GridRow(0)
-                .GridColumn(0);
+                .TranslationX(10)
+                .TranslationY((hasBadges ? 20 : 0) + CardHeight - 10)
+                .ZIndex(10)
+                .OnClicked(RaisePopup);
 
-            HorizontalStackLayout? badgesRow = null;
+            cardLayer.AddChildren(backCard, frontCard);
+
+            VisualNode? badgesScroller = null;
+
             if (hasBadges)
             {
-                var badgeTop = CardHeight + 6;
-
-                badgesRow = new HorizontalStackLayout()
-                    .Spacing(badgeSpacing)
-                    .Margin(-badgeSize / 2.0 + 12, badgeTop, 0, 0)
-                    .GridRow(0)
-                    .GridColumn(0);
-
-                int index = 0;
-                foreach (var glyph in BackIconGlyphs!)
-                {
-                    var badge = new Frame()
+                badgesScroller = new ScrollView()
                     {
-                        new Label()
-                            .Text(glyph)
-                            .FontFamily(IconFontFamily)
-                            .FontSize(badgeSize - 12)
-                            .HorizontalOptions(MauiControls.LayoutOptions.Center)
-                            .VerticalOptions(MauiControls.LayoutOptions.Center)
+                        new HorizontalStackLayout()
+                            {
+                                BackIconGlyphs!.Select(glyph =>
+                                        new Frame
+                                        {
+                                            new Label()
+                                                .Text(glyph)
+                                                .FontFamily(IconFontFamily)
+                                                .FontSize(12)
+                                                .HorizontalOptions(MauiControls.LayoutOptions.Center)
+                                                .VerticalOptions(MauiControls.LayoutOptions.Center)
+                                        }
+                                        .WidthRequest(badgeSize)
+                                        .HeightRequest(badgeSize)
+                                        .CornerRadius(6)
+                                        .HasShadow(false)
+                                        .BackgroundColor(Colors.White)
+                                        .BorderColor(Colors.LightGray)
+                                    ).ToArray()
+                            }
+                            .Spacing(8)
+                            .Padding(8, 8)
                     }
-                    .CornerRadius(5)
-                    .Padding(5)
-                    .HasShadow(false)
-                    .BackgroundColor(Colors.White)
-                    .BorderColor(Colors.LightGray)
-                    .WidthRequest(badgeSize)
+                    .Orientation(ScrollOrientation.Horizontal)
+                    .WidthRequest(cardWidth * 0.95)
                     .HeightRequest(badgeSize)
-                    .OnTapped(() => System.Diagnostics.Debug.WriteLine($"Badge {glyph} tapped"));
-
-                    badgesRow.AddChildren(badge);
-                    index++;
-                }
+                    .HorizontalOptions(MauiControls.LayoutOptions.Start)
+                    .VerticalOptions(MauiControls.LayoutOptions.Start)
+                    .TranslationY(20 + CardHeight - badgeSize / 2)
+                    .ZIndex(5);
             }
 
             var root = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
-                [new MauiControls.ColumnDefinition(GridLength.Star)])
-            {
-                backCard,
-                front
-            }
-            .HeightRequest(CardHeight)
-            .WidthRequest(cardWidth)
-            .Margin(0, 0, 0, hasBadges ? badgeSize : 16);
+                [new MauiControls.ColumnDefinition(GridLength.Star)]
+            )
+            .WidthRequest(rootWidth)
+            .HeightRequest(rootHeight)
+            .Margin(0, 0, 0, 16);
 
-            if (badgesRow != null)
-            {
-                root.AddChildren(badgesRow);
-            }
 
-            root.AddChildren(backMenuBtn);
+            cardLayer.AddChildren(backCard, frontCard);
+
+            if (badgesScroller != null)
+                cardLayer.AddChildren(badgesScroller);
+
+            cardLayer.AddChildren(backMenuBtn);
+
+            root.AddChildren(cardLayer);
 
             return root;
         }
@@ -187,133 +203,95 @@ namespace KryptNx.FlowNxt.App.Components4
 
         Frame BuildFront(double cardWidth)
         {
-            // overlay content: title, desc, footer
-            var overlay = new Grid([new MauiControls.RowDefinition(GridLength.Auto), new MauiControls.RowDefinition(GridLength.Auto),
-                    new MauiControls.RowDefinition(GridLength.Auto)],
-                [new MauiControls.ColumnDefinition(GridLength.Star)])
+            var overlay = new VerticalStackLayout
             {
                 new Label()
-                    .Text(() => Title ?? "No Title")
+                    .Text(() => Title)
                     .FontSize(20)
                     .FontAttributes(MauiControls.FontAttributes.Bold)
-                    .Margin(12, 8, 12, 2)
-                    .GridRow(0)
-                    .GridColumn(0),
+                    .Margin(12, 8, 12, 2),
 
                 new Label()
-                    .Text(() => Description ?? "No Description")
+                    .Text(() => Description)
                     .FontSize(13)
                     .Opacity(0.95)
                     .Margin(12, 0, 12, 6)
-                    .GridRow(1)
-                    .GridColumn(0),
             };
 
-            var frontContentGrid = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
-                [new MauiControls.ColumnDefinition(GridLength.Star)])
+            static Frame BaseFrame(VisualNode content, Color bg, Color? border = null)
             {
-                overlay.GridRow(0).GridColumn(0)
-            };
-
-            if (Variant == CardVariant.Outline && !string.IsNullOrEmpty(IconGlyph))
-            {
-                frontContentGrid.AddChildren(
-                    new Image()
-                        .Source(() => CardViewHelpers.CreateFontImageSource(IconGlyph, IconFontFamily, 40, Colors.Black))
-                        .Rotation(20)
-                        .HorizontalOptions(MauiControls.LayoutOptions.End)
-                        .VerticalOptions(MauiControls.LayoutOptions.End)
-                        .Margin(0, 0, 8, 8)
-                        .Opacity(0.12)
-                        .GridRow(0)
-                        .GridColumn(0)
-                );
-            }
-
-            Frame BaseFrame(VisualNode content, Color bg, Color? border = null)
-            {
-                var baseFrame = new Frame { content }
+                var frame = new Frame { content }
                     .CornerRadius(Corner)
                     .HasShadow(true)
                     .Padding(0)
-                    .BackgroundColor(bg)
-                    .Margin(0, 0, 18, 18)
-                    .WidthRequest(cardWidth)
-                    .HeightRequest(CardHeight);
+                    .BackgroundColor(bg);
 
                 if (border != null)
-                {
-                    baseFrame = baseFrame.BorderColor(border);
-                }
+                    frame = frame.BorderColor(border);
 
-                return baseFrame;
+                return frame;
             }
 
-            switch (Variant)
+            return Variant switch
             {
-                case CardVariant.Outline:
-                    return BaseFrame(frontContentGrid, Colors.White, Colors.LightGray);
+                CardVariant.Solid => BaseFrame(overlay, SolidColor, CardViewHelpers.Blend(SolidColor, Colors.Black, 0.08f)),
 
-                case CardVariant.Solid:
-                    return BaseFrame(frontContentGrid, SolidColor, CardViewHelpers.Blend(SolidColor, Colors.Black, 0.08f));
-
-                case CardVariant.Gradient:
-                    var (from, to) = GradientColors ?? (Colors.MediumPurple, Colors.LightBlue);
-                    var gradBox = new BoxView()
-                        .Background(new MauiControls.LinearGradientBrush([new MauiControls.GradientStop(from, 0f),
-                            new MauiControls.GradientStop(to, 1f)],
-                            new Point(0, 0),
-                            new Point(1, 1)
-                        ))
-                        .GridRow(0)
-                        .GridColumn(0);
-
-                    var gradientGrid = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
-                        [new MauiControls.ColumnDefinition(GridLength.Star)])
-                    {
-                        gradBox,
-                        overlay.GridRow(0).GridColumn(0)
-                    };
-
-                    return BaseFrame(gradientGrid, Colors.Transparent, Colors.Transparent);
-
-                case CardVariant.ImageBackground:
-                    Image? imageBackground = string.IsNullOrEmpty(BackgroundImage) ? null : new Image()
-                            .Source(() =>
-                            {
-                                if (BackgroundImage.StartsWith("http", StringComparison.OrdinalIgnoreCase) || BackgroundImage.StartsWith("https", StringComparison.OrdinalIgnoreCase))
-                                    return MauiControls.ImageSource.FromUri(new Uri(BackgroundImage));
-
-                                return MauiControls.ImageSource.FromFile(BackgroundImage);
-                            })
-                            .Aspect(Aspect.AspectFill)
-                            .Opacity(ImageOpacity)
-                            .GridRow(0)
-                            .GridColumn(0);
-
-                    return BaseFrame(new Grid([new MauiControls.RowDefinition(GridLength.Star)],
-                            [new MauiControls.ColumnDefinition(GridLength.Star)])
+                CardVariant.Gradient =>
+                    BaseFrame(
+                        new Grid
                         {
-                            imageBackground,
-
-                            new BoxView()
-                                .Background(new MauiControls.LinearGradientBrush(
+                            new BoxView().Background(
+                                new MauiControls.LinearGradientBrush(
                                     [
-                                        new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.28f), 0f),
-                                        new MauiControls.GradientStop(Color.FromRgba(0,0,0,0.08f), 1f)
+                                        new MauiControls.GradientStop(GradientColors?.from ?? Colors.Purple, 0),
+                                        new MauiControls.GradientStop(GradientColors?.to ?? Colors.Blue, 1)
                                     ],
-                                    new Point(0,0),
-                                    new Point(0,1)
-                                ))
-                                .GridRow(0)
-                                .GridColumn(0),
+                                    new Point(0, 0),
+                                    new Point(1, 1)
+                                )
+                            ),
+                            overlay
+                        },
+                        Colors.Transparent
+                    ),
 
-                            overlay.GridRow(0).GridColumn(0)
-                        }, Colors.White);
+                CardVariant.ImageBackground =>
+                    BaseFrame(
+                            new Grid
+                            {
+                                string.IsNullOrWhiteSpace(BackgroundImage) ? null
+                                : new Image()
+                                    .Source(() =>
+                                    {
+                                        if (BackgroundImage.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                            return MauiControls.ImageSource.FromUri(new Uri(BackgroundImage));
 
-                default:
-                    return BaseFrame(frontContentGrid, Colors.White, Colors.LightGray);
-            }
+                                        return MauiControls.ImageSource.FromFile(BackgroundImage);
+                                    })
+                                    .Aspect(Aspect.AspectFill)
+                                    .GridRow(0)
+                                    .GridColumn(0),
+
+                                new BoxView()
+                                    .Background(
+                                        new MauiControls.LinearGradientBrush(
+                                            [
+                                                new MauiControls.GradientStop(Color.FromRgba(0, 0, 0, 0.45f), 0),
+                                                new MauiControls.GradientStop(Color.FromRgba(0, 0, 0, 0.15f), 1)
+                                            ],
+                                            new Point(0, 0),
+                                            new Point(0, 1)
+                                        )
+                                    )
+                                    .GridRow(0)
+                                    .GridColumn(0),
+                                overlay
+                            },
+                            Colors.Transparent
+                        ),
+
+                _ => BaseFrame(overlay, Colors.White, Colors.LightGray)
+            };
         }
     }
 
@@ -390,7 +368,7 @@ namespace KryptNx.FlowNxt.App.Components4
                     image: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&q=80"
                 )
             }
-            .Spacing(24)
+            .Spacing(16)
             .Padding(new Thickness(8));
 
             var pageRoot = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
