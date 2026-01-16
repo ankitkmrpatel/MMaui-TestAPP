@@ -6,6 +6,10 @@ using MauiReactor;
 using MauiReactor.Compatibility;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KryptNx.FlowNxt.App.Components4
 {
@@ -99,22 +103,20 @@ namespace KryptNx.FlowNxt.App.Components4
             bool hasBadges = BackIconGlyphs != null && BackIconGlyphs.Count > 0;
             double badgeSize = 24;
             double badgeHeight = hasBadges ? 36 : 0;
+            var rootHeight = CardHeight + 10 + (hasBadges ? badgeSize : 0); // reserve visual space once
 
-            var cardLayer = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
-                [new MauiControls.ColumnDefinition(GridLength.Star)]
-            )
-            .BackgroundColor(Colors.Blue)
-            .HeightRequest(CardHeight + 20);
+            var cardLayer = new Grid()
+                .HeightRequest(rootHeight);
 
             var backCard = new Frame()
                 .CornerRadius(Corner)
                 .HasShadow(false)
-                .BackgroundColor(Colors.LightGray)
+                .BackgroundColor(Colors.DarkGrey)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight + (hasBadges ? (badgeSize - 6) : 0))
+                .HeightRequest(CardHeight + (hasBadges ? badgeSize : 0))
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
-                .Margin(0, 20, 0, 0);
+                .TranslationY(20);
 
             var frontCard = BuildFront(cardWidth)
                 .WidthRequest(cardWidth)
@@ -129,7 +131,8 @@ namespace KryptNx.FlowNxt.App.Components4
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
                 .TranslationX(10)
-                .TranslationY(CardHeight - 10 + (hasBadges ? badgeSize - 6 : 0))
+                .TranslationY((hasBadges ? 20 : 0) + CardHeight - 10)
+                .ZIndex(10)
                 .OnClicked(RaisePopup);
 
             cardLayer.AddChildren(backCard, frontCard);
@@ -165,28 +168,29 @@ namespace KryptNx.FlowNxt.App.Components4
                     }
                     .Orientation(ScrollOrientation.Horizontal)
                     .WidthRequest(cardWidth * 0.95)
-                    .HeightRequest(badgeHeight)
-                    .GridRow(1);
+                    .HeightRequest(badgeSize)
+                    .HorizontalOptions(MauiControls.LayoutOptions.Start)
+                    .VerticalOptions(MauiControls.LayoutOptions.Start)
+                    .TranslationY(20 + CardHeight - badgeSize / 2)
+                    .ZIndex(5);
             }
 
-            var root = new Grid([new MauiControls.RowDefinition(GridLength.Auto), // CardLayer
-                    new MauiControls.RowDefinition(GridLength.Auto)  // Badges
-                ],
+            var root = new Grid([new MauiControls.RowDefinition(GridLength.Star)],
                 [new MauiControls.ColumnDefinition(GridLength.Star)]
             )
-            {
-                cardLayer
-            }
-            .BackgroundColor(Colors.Red)
             .WidthRequest(rootWidth)
+            .HeightRequest(rootHeight)
             .Margin(0, 0, 0, 16);
 
-            if (badgesScroller != null)
-            {
-                root.AddChildren(badgesScroller);
-            }
 
-            root.AddChildren(backMenuBtn);
+            cardLayer.AddChildren(backCard, frontCard);
+
+            if (badgesScroller != null)
+                cardLayer.AddChildren(badgesScroller);
+
+            cardLayer.AddChildren(backMenuBtn);
+
+            root.AddChildren(cardLayer);
 
             return root;
         }
@@ -290,6 +294,7 @@ namespace KryptNx.FlowNxt.App.Components4
             };
         }
     }
+
     public class CardDemoPage : Component
     {
         // overlay state
