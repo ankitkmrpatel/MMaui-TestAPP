@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using MauiReactor;
+﻿using MauiReactor;
 using MauiReactor.Compatibility;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
@@ -69,7 +65,7 @@ namespace KryptNx.FlowNxt.App.Components4
         public string Title { get; set; } = "Title";
         public string Description { get; set; } = "Description";
         public CardVariant Variant { get; set; } = CardVariant.Outline;
-        
+
         // Icon on front card and watermark
         public string IconGlyph { get; set; } = "\uf0f3";   // FontAwesome bell
         public string IconFontFamily { get; set; } = "FA";  // alias defined in MauiProgram
@@ -113,7 +109,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .HasShadow(false)
                 .BackgroundColor(Colors.DarkGrey)
                 .WidthRequest(cardWidth)
-                .HeightRequest(CardHeight + (hasBadges ? badgeSize : 0))
+                .HeightRequest(CardHeight + (hasBadges ? badgeSize - 5 : 0))
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
                 .TranslationY(20);
@@ -131,7 +127,7 @@ namespace KryptNx.FlowNxt.App.Components4
                 .HorizontalOptions(MauiControls.LayoutOptions.End)
                 .VerticalOptions(MauiControls.LayoutOptions.Start)
                 .TranslationX(10)
-                .TranslationY((hasBadges ? 20 : 0) + CardHeight - 10)
+                .TranslationY((hasBadges ? (20 + CardHeight - 12) : (CardHeight - 12)))
                 .ZIndex(10)
                 .OnClicked(RaisePopup);
 
@@ -143,7 +139,7 @@ namespace KryptNx.FlowNxt.App.Components4
             {
                 badgesScroller = new ScrollView()
                     {
-                        new HorizontalStackLayout()
+                            new HorizontalStackLayout()
                             {
                                 BackIconGlyphs!.Select(glyph =>
                                         new Frame
@@ -155,16 +151,16 @@ namespace KryptNx.FlowNxt.App.Components4
                                                 .HorizontalOptions(MauiControls.LayoutOptions.Center)
                                                 .VerticalOptions(MauiControls.LayoutOptions.Center)
                                         }
-                                        .WidthRequest(badgeSize)
-                                        .HeightRequest(badgeSize)
-                                        .CornerRadius(6)
-                                        .HasShadow(false)
-                                        .BackgroundColor(Colors.White)
-                                        .BorderColor(Colors.LightGray)
-                                    ).ToArray()
+                                            .WidthRequest(badgeSize)
+                                            .HeightRequest(badgeSize)
+                                            .CornerRadius(6)
+                                            .HasShadow(false)
+                                            .BackgroundColor(Colors.White)
+                                            .BorderColor(Colors.LightGray)
+                                ).ToArray()
                             }
-                            .Spacing(8)
-                            .Padding(8, 8)
+                                .Spacing(8)
+                                .Padding(8, 8)
                     }
                     .Orientation(ScrollOrientation.Horizontal)
                     .WidthRequest(cardWidth * 0.95)
@@ -295,16 +291,18 @@ namespace KryptNx.FlowNxt.App.Components4
         }
     }
 
-    public class CardDemoPage : Component
+    public class CardDemoPageProps
     {
-        // overlay state
-        bool _overlayVisible = false;
-        PopupSpec? _overlaySpec = null;
+        public double BackdropOpacity { get; set; } = 0.0;
+        public double PopupOpacity { get; set; } = 0.0;
+        public double PopupOffset { get; set; } = 24.0;
+        public bool OverlayVisible { get; set; } = false;
+        public PopupSpec? OverlaySpec { get; set; } = null;
+    }
 
-        // animation-driven state
-        double _backdropOpacity = 0.0;
-        double _popupOpacity = 0.0;
-        double _popupOffset = 24.0;
+    public class CardDemoPage : Component<CardDemoPageProps>
+    {
+        // Popup state
         bool _isAnimating = false;
         CancellationTokenSource? _animCts;
 
@@ -323,15 +321,20 @@ namespace KryptNx.FlowNxt.App.Components4
                     GradientColors = gradient,
                     BackgroundImage = image ?? "",
                     BackIconGlyphs = backGlyphs ?? [],
-                    RequestShowOverlay = (spec) =>
-                    {
-                        _overlaySpec = spec;
-                        _overlayVisible = true;
-                        _backdropOpacity = 0.0;
-                        _popupOpacity = 0.0;
-                        _popupOffset = 24.0;
-                        Invalidate();
 
+                    RequestShowOverlay = spec =>
+                    {
+                        // Initial state (no animation)
+                        SetState((s) =>
+                        {
+                            s.OverlaySpec = spec;
+                            s.OverlayVisible = true;
+                            s.BackdropOpacity = 0.0;
+                            s.PopupOpacity = 0.0;
+                            s.PopupOffset = 24.0;
+                        }, invalidateComponent: false);
+
+                        // Animate IN
                         Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
                         {
                             await Task.Delay(10);
@@ -380,64 +383,65 @@ namespace KryptNx.FlowNxt.App.Components4
                 }
             };
 
-            if (_overlayVisible && _overlaySpec != null)
+            // Overlay
+            if (State.OverlayVisible && State.OverlaySpec != null)
             {
                 var backdrop = new BoxView()
-                    .BackgroundColor(() => Color.FromRgba(0, 0, 0, (float)_backdropOpacity))
-                    .OnTapped(async () => await AnimateHideAsync())
-                    .GridRow(0)
-                    .GridColumn(0);
+                    .BackgroundColor(() => Color.FromRgba(0, 0, 0, (float)State.BackdropOpacity))
+                    .OnTapped(async () => await AnimateHideAsync());
 
                 var deviceWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
                 var popupWidth = Math.Min(360, Math.Max(260, deviceWidth * 0.8));
 
-                var popupFrame = new Frame()
-                {
-                    new VerticalStackLayout()
+                var popupFrame = new Frame
                     {
-                        new Button().Text("Edit").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
+                        new VerticalStackLayout
                         {
-                            _overlaySpec?.OnEdit?.Invoke();
-                            await AnimateHideAsync();
-                        }),
-                        new BoxView().HeightRequest(1).BackgroundColor(Color.FromRgba(0,0,0,0.06f)),
-                        new Button().Text("View").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
-                        {
-                            _overlaySpec?.OnView?.Invoke();
-                            await AnimateHideAsync();
-                        }),
-                        new BoxView().HeightRequest(1).BackgroundColor(Color.FromRgba(0,0,0,0.06f)),
-                        new Button().Text("Delete").TextColor(Colors.Black).BackgroundColor(Colors.Transparent).OnClicked(async () =>
-                        {
-                            _overlaySpec?.OnDelete?.Invoke();
-                            await AnimateHideAsync();
-                        })
+                            PopUpButton("Edit", State.OverlaySpec?.OnEdit),
+                            Divider(),
+
+                            PopUpButton("View", State.OverlaySpec?.OnView),
+                            Divider(),
+
+                            PopUpButton("Delete", State.OverlaySpec?.OnDelete),
+                        }
                     }
-                }
-                .CornerRadius(8)
-                .HasShadow(true)
-                .BackgroundColor(Colors.White)
-                .BorderColor(Color.FromRgba(0, 0, 0, 0.06f))
-                .WidthRequest(popupWidth)
-                .Padding(0)
-                .Opacity(() => _popupOpacity)
-                .Margin(() => new Thickness(0, _popupOffset, 0, 0));
+                    .CornerRadius(8)
+                    .HasShadow(true)
+                    .BackgroundColor(Colors.White)
+                    .BorderColor(Color.FromRgba(0, 0, 0, 0.06f))
+                    .WidthRequest(popupWidth)
+                    .Opacity(() => State.PopupOpacity)
+                    .TranslationY(() => State.PopupOffset);
 
                 var centered = new Grid()
-                {
+                    {
                     new ContentView
                     {
                         popupFrame
                     }
-                    .HorizontalOptions(MauiControls.LayoutOptions.Center)
-                    .VerticalOptions(MauiControls.LayoutOptions.Center)
-                };
+                        .HorizontalOptions(MauiControls.LayoutOptions.Center)
+                        .VerticalOptions(MauiControls.LayoutOptions.Center)
+                    };
 
                 pageRoot.AddChildren(backdrop, centered);
             }
 
             return pageRoot;
         }
+
+        VisualNode Divider() => new BoxView()
+            .HeightRequest(1)
+            .BackgroundColor(Color.FromRgba(0, 0, 0, 0.06f));
+
+        VisualNode PopUpButton(string buttonName, Action? buttonAction) => new Button()
+            .Text(buttonName)
+            .BackgroundColor(Colors.Transparent)
+            .OnClicked(async () =>
+            {
+                buttonAction?.Invoke();
+                await AnimateHideAsync();
+            });
 
         async Task AnimateShowAsync()
         {
@@ -459,17 +463,24 @@ namespace KryptNx.FlowNxt.App.Components4
                     var t = i / (double)frames;
                     var ease = 1 - Math.Pow(1 - t, 2);
 
-                    _backdropOpacity = 0.15 * ease;
-                    _popupOpacity = ease;
-                    _popupOffset = 24 * (1 - ease);
+                    SetState((s) =>
+                    {
+                        s.BackdropOpacity = 0.15 * ease;
+                        s.PopupOpacity = ease;
+                        s.PopupOffset = 24 * (1 - ease);
+                    }, invalidateComponent: false);
 
                     Invalidate();
                     await Task.Delay(frameDelay, token);
                 }
 
-                _backdropOpacity = 0.15;
-                _popupOpacity = 1.0;
-                _popupOffset = 0.0;
+                SetState((s) =>
+                {
+                    s.BackdropOpacity = 0.15;
+                    s.PopupOpacity = 1.0;
+                    s.PopupOffset = 0.0;
+                }, invalidateComponent: false);
+
                 Invalidate();
             }
             catch (OperationCanceledException) { }
@@ -497,9 +508,12 @@ namespace KryptNx.FlowNxt.App.Components4
                     var t = i / (double)frames;
                     var ease = Math.Pow(1 - t, 2);
 
-                    _backdropOpacity = 0.15 * ease;
-                    _popupOpacity = ease;
-                    _popupOffset = 24 * (1 - ease);
+                    SetState((s) =>
+                    {
+                        s.BackdropOpacity = 0.15 * ease;
+                        s.PopupOpacity = ease;
+                        s.PopupOffset = 24 * (1 - ease);
+                    }, invalidateComponent: false);
 
                     Invalidate();
                     await Task.Delay(frameDelay, token);
@@ -508,11 +522,16 @@ namespace KryptNx.FlowNxt.App.Components4
             catch (OperationCanceledException) { }
             finally
             {
-                _backdropOpacity = 0.0;
-                _popupOpacity = 0.0;
-                _popupOffset = 24.0;
-                _overlayVisible = false;
-                _overlaySpec = null;
+                SetState((s) =>
+                {
+                    s.BackdropOpacity = 0.0;
+                    s.PopupOpacity = 0.0;
+                    s.PopupOffset = 24.0;
+
+                    s.OverlayVisible = false;
+                    s.OverlaySpec = null!;
+                }, invalidateComponent: false);
+
                 Invalidate();
 
                 _isAnimating = false;
