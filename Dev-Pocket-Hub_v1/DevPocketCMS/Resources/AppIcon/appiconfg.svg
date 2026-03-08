@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Artwork scaled to 58% of canvas (centred) to respect Android adaptive icon safe zone -->
+  <g transform="translate(256 256) scale(0.58) translate(-256 -256)">
+
+    <!-- Book body left page -->
+    <rect x="80" y="140" width="170" height="230" rx="12" fill="#1A1A2E" stroke="#252540" stroke-width="2"/>
+    <!-- Book body right page -->
+    <rect x="262" y="140" width="170" height="230" rx="12" fill="#13131F" stroke="#252540" stroke-width="2"/>
+    <!-- Spine line -->
+    <rect x="248" y="130" width="16" height="250" rx="4" fill="#4FFFB0"/>
+
+    <!-- Circuit lines left page -->
+    <line x1="110" y1="200" x2="220" y2="200" stroke="#4FFFB0" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="220" cy="200" r="5" fill="#4FFFB0"/>
+    <line x1="220" y1="200" x2="220" y2="240" stroke="#4FFFB0" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="110" y1="240" x2="220" y2="240" stroke="#4FFFB0" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="110" cy="240" r="5" fill="#4FFFB0"/>
+    <line x1="110" y1="240" x2="110" y2="280" stroke="#4FFFB0" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="110" y1="280" x2="180" y2="280" stroke="#4FFFB0" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="180" cy="280" r="5" fill="#4FFFB0"/>
+    <line x1="110" y1="320" x2="215" y2="320" stroke="#2DD68A" stroke-width="1.5" stroke-linecap="round"/>
+
+    <!-- Circuit lines right page -->
+    <line x1="292" y1="195" x2="402" y2="195" stroke="#00C2FF" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="292" cy="195" r="5" fill="#00C2FF"/>
+    <line x1="292" y1="195" x2="292" y2="245" stroke="#00C2FF" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="292" y1="245" x2="372" y2="245" stroke="#00C2FF" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="372" cy="245" r="5" fill="#00C2FF"/>
+    <line x1="372" y1="245" x2="372" y2="290" stroke="#00C2FF" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="295" y1="310" x2="400" y2="310" stroke="#4FFFB0" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="400" cy="310" r="4" fill="#4FFFB0"/>
+
+    <!-- Glow dots -->
+    <circle cx="256" cy="388" r="8" fill="#4FFFB0" opacity="0.7"/>
+    <circle cx="236" cy="388" r="4" fill="#4FFFB0" opacity="0.4"/>
+    <circle cx="276" cy="388" r="4" fill="#4FFFB0" opacity="0.4"/>
+  </g>
+</svg>

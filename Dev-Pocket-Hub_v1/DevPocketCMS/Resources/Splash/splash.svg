@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Minimal centered book/circuit for splash -->
+  <rect x="60" y="60" width="80" height="110" rx="8" fill="#1A1A2E" stroke="#252540" stroke-width="1.5"/>
+  <rect x="160" y="60" width="80" height="110" rx="8" fill="#13131F" stroke="#252540" stroke-width="1.5"/>
+  <rect x="147" y="55" width="8" height="120" rx="3" fill="#4FFFB0"/>
+  <line x1="75"  y1="100" x2="130" y2="100" stroke="#4FFFB0" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="130" cy="100" r="3.5" fill="#4FFFB0"/>
+  <line x1="130" y1="100" x2="130" y2="125" stroke="#4FFFB0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="75"  y1="125" x2="130" y2="125" stroke="#4FFFB0" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="75" cy="125" r="3.5" fill="#4FFFB0"/>
+  <line x1="168" y1="98"  x2="228" y2="98"  stroke="#00C2FF" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="168" cy="98" r="3.5" fill="#00C2FF"/>
+  <line x1="168" y1="98"  x2="168" y2="128" stroke="#00C2FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="168" y1="128" x2="215" y2="128" stroke="#00C2FF" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="215" cy="128" r="3.5" fill="#00C2FF"/>
+  <circle cx="150" cy="195" r="5" fill="#4FFFB0" opacity="0.8"/>
+</svg>
